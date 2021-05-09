@@ -20,7 +20,8 @@
         "emitDecoratorMetadata": true,
         "experimentalDecorators": true,
         "allowJs": true,
-        "skipLibCheck": true
+        "skipLibCheck": true,
+        "newLine": "lf"
     },
     "exclude": ["node_modules"],
     "include": ["./src/**/*.tsx", "./src/**/*.ts"]
