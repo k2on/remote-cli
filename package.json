@@ -15,7 +15,9 @@
         "test": "mocha -r ts-node/register tests/**",
         "lint": "eslint src/**",
         "mk-docs": "typedoc --name \"Documentation\" && touch ./docs/.nojekyll",
-        "prepublish": "tsc"
+        "start": "ts-node src/index.ts",
+        "start:dev": "yarn start ./test-cli",
+        "generate-schema": "ts-node scripts/generateSchema.ts"
     },
     "devDependencies": {
         "@nix2/prettier-config": "^1.0.2",
@@ -25,6 +27,7 @@
         "@typescript-eslint/parser": "4.9.0",
         "eslint": "7.14.0",
         "eslint-plugin-jsdoc": "30.7.8",
+        "json-schema-to-typescript": "^10.1.4",
         "mocha": "8.2.1",
         "prettier": "2.1.2",
         "ts-node": "9.1.0",
@@ -33,5 +36,10 @@
     },
     "files": [
         "dist"
-    ]
+    ],
+    "dependencies": {
+        "ajv": "^8.2.0",
+        "asciimo": "^0.3.1",
+        "ora": "^5.4.0"
+    }
 }

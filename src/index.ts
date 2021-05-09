@@ -1,7 +1,9 @@
-/*
- * File: index.ts
- * Created:
- * ----
- * Copyright: 2020 Nix² Technologies
- * Author: name (name@nix2.io)
- */
+#!/usr/bin/env node
+
+import { build } from './build';
+
+const args = process.argv;
+args.splice(0, 2);
+const directory = args[0] || './';
+
+build(directory);
