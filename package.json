@@ -17,7 +17,8 @@
         "mk-docs": "typedoc --name \"Documentation\" && touch ./docs/.nojekyll",
         "start": "ts-node src/index.ts",
         "start:dev": "yarn start ./test-cli",
-        "generate-schema": "ts-node scripts/generateSchema.ts"
+        "generate-schema": "ts-node scripts/generateSchema.ts",
+        "publish-pkg": "yarn generate-schema & yarn publish --access=public"
     },
     "devDependencies": {
         "@nix2/prettier-config": "^1.0.2",
