@@ -1,8 +1,8 @@
 <p align="center"><img height="220px" src="https://i.imgur.com/48BeKfE.png" alt="Logo" /><p>
 
 <p align="center">
-  <strong>{Name}</strong><br />
-  <sub>{Description}</sub>
+  <strong>Remote CLI</strong><br />
+  <sub>A tool for building remote CLIs.</sub>
 </p>
 
 <p align="center">
@@ -12,7 +12,7 @@
 # Installation
 
 ```sh
-yarn add @nix2/PACKAGE_NAME
+yarn add -D remote-cli
 ```
 
 # Usage

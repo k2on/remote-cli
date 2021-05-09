@@ -1,12 +1,12 @@
 {
-    "name": "@nix2/package-name",
+    "name": "remote-cli",
     "version": "1.0.0",
-    "description": "PACKAGE_DESCRIPTION",
+    "description": "A tool for building remote CLIs.",
     "main": "./dist/index.js",
     "types": "./dist/index.d.ts",
     "repository": "https://github.com/nix2io/package-template.git",
-    "author": "Name <name@nix2.io>",
-    "license": "CC-BY-1.0",
+    "author": "Max Koon <maxk@nix2.io>",
+    "license": "MIT",
     "private": false,
     "prettier": "@nix2/prettier-config",
     "scripts": {
@@ -41,5 +41,8 @@
         "ajv": "^8.2.0",
         "asciimo": "^0.3.1",
         "ora": "^5.4.0"
+    },
+    "bin": {
+        "remote-cli": "./dist/index.js"
     }
 }
