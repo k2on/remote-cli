@@ -1,7 +1,7 @@
 {
-    "name": "remote-cli",
+    "name": "remote-shell",
     "version": "1.0.0",
-    "description": "A tool for building remote CLIs.",
+    "description": "A tool for building remote shells.",
     "main": "./dist/index.js",
     "types": "./dist/index.d.ts",
     "repository": "https://github.com/nix2io/package-template.git",
@@ -44,6 +44,6 @@
         "ora": "^5.4.0"
     },
     "bin": {
-        "remote-cli": "./dist/index.js"
+        "remote-shell": "./dist/index.js"
     }
 }
