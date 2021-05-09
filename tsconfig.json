@@ -19,7 +19,8 @@
         "allowSyntheticDefaultImports": false,
         "emitDecoratorMetadata": true,
         "experimentalDecorators": true,
-        "allowJs": true
+        "allowJs": true,
+        "skipLibCheck": true
     },
     "exclude": ["node_modules"],
     "include": ["./src/**/*.tsx", "./src/**/*.ts"]
