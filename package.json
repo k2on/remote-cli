@@ -1,5 +1,5 @@
 {
-    "name": "remote-shell",
+    "name": "shell-builder",
     "version": "1.0.0",
     "description": "A tool for building remote shells.",
     "main": "./dist/index.js",
@@ -18,7 +18,8 @@
         "start": "ts-node src/index.ts",
         "start:dev": "yarn start ./test-cli",
         "generate-schema": "ts-node scripts/generateSchema.ts",
-        "publish-pkg": "yarn generate-schema & yarn publish --access=public"
+        "build": "yarn generate-schema & yarn tsc",
+        "publish-pkg": "yarn build & yarn publish --access=public"
     },
     "devDependencies": {
         "@nix2/prettier-config": "^1.0.2",
@@ -44,6 +45,6 @@
         "ora": "^5.4.0"
     },
     "bin": {
-        "remote-shell": "./dist/index.js"
+        "shell-builder": "./dist/index.js"
     }
 }
