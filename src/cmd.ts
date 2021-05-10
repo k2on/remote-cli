@@ -1,12 +1,14 @@
 import { join } from 'path';
 import {
+    BATCH_ADDITIONAL_VARIABLE_NAMES,
     BATCH_ESCAPE_CHARACTER,
     BATCH_ESCAPE_CHARACTERS,
+    BATCH_TIME_VARIABLES,
     BATCH_VARIABLES,
     COLOR_CODES,
 } from './constants';
 import { Command, Context, Menu } from './type';
-import { copyObject, getFile, sanitizeString } from './util';
+import { buildSplash, copyObject, getFile, sanitizeString } from './util';
 
 const variables: Record<string, string> = BATCH_VARIABLES;
 
@@ -54,11 +56,20 @@ const includeScripts = (ctx: Context) => {
 };
 
 const convertVariables = (str: string): string => {
-    for (const variableName of Object.keys(variables)) {
+    const variableNames = Object.keys(variables).concat(
+        ...BATCH_ADDITIONAL_VARIABLE_NAMES,
+    );
+    for (const variableName of variableNames) {
         str = str.replace(`$${variableName}`, `%${variableName}%`);
     }
     return str;
 };
+
+const multilineEcho = (str: string): string =>
+    str
+        .split('\n')
+        .map((line) => (line.trim() != '' ? `echo ${line}` : 'echo.'))
+        .join('\n');
 
 const sanitizeBatchString = (str: string): string =>
     sanitizeString(
@@ -90,6 +101,13 @@ const generateHelpCommand = (
     return lines;
 };
 
+const buildHeader = (menu: Menu): string => {
+    if (!menu.header) return '';
+    return sanitizeBatchString(
+        `${BATCH_TIME_VARIABLES}\necho $BG_DARK_GREY${menu.header}$RESET\necho.`,
+    );
+};
+
 const buildProcess = (name: string, menu: Menu): string => {
     let code = '';
     const commands = Object.assign(copyObject<Command>(menu.commands || {}), {
@@ -118,15 +136,9 @@ const buildProcess = (name: string, menu: Menu): string => {
                 'either a script or command must be specified for ' +
                     commandName,
             );
-        const commandLines =
-            cmd.script != undefined
-                ? // script function name
-                  [cmd.script!]
-                : Array.isArray(cmd.command)
-                ? // Multi-line command.
-                  cmd.command!
-                : // Single-line command.
-                  [cmd.command!];
+        const commandLines: string[] = Array.isArray(cmd.command)
+            ? cmd.command
+            : [cmd.script!] || [cmd.command!];
         const logic = commandLines.map((line) => `    ${line}`).join('\n');
 
         code += `: ${cmd.description}\n`;
@@ -169,9 +181,9 @@ const buildMenu = async (name: string, menu: Menu) =>
         `The ${name} menu.`,
         `
 cls
-:HEADER
+${buildHeader(menu)}
 
-:SPLASH
+${multilineEcho(await buildSplash(menu.splash, sanitizeBatchString))}
 
 ${callFunc(`prompt_${name}`)}
 `,

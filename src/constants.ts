@@ -44,7 +44,7 @@ export const BASH_ESCAPE_CHARACTER = '\\';
 export const BASH_ESCAPE_CHARACTERS = ['\\', '"', '`', "'"];
 
 export const BATCH_ESCAPE_CHARACTER = '^';
-export const BATCH_ESCAPE_CHARACTERS = ['>'];
+export const BATCH_ESCAPE_CHARACTERS = ['>', '|'];
 
 export const BASH_VARIABLES = {
     USER: '$(whoami)',
@@ -53,5 +53,8 @@ export const BATCH_VARIABLES = {
     USER: '%username%',
     func: '',
 };
+export const BATCH_ADDITIONAL_VARIABLE_NAMES = ['TIME'];
 
 export const BASH_TIME_VARIABLES = 'TIME=`date "+%m/%d/%Y %H:%M:%S"`';
+
+export const BATCH_TIME_VARIABLES = ``;

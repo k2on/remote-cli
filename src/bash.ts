@@ -111,15 +111,9 @@ case "\${parts[0]}" in`;
                 'either a script or command must be specified for ' +
                     commandName,
             );
-        const commandLines =
-            cmd.script != undefined
-                ? // script function name
-                  [cmd.script!]
-                : Array.isArray(cmd.command)
-                ? // Multi-line command.
-                  cmd.command!
-                : // Single-line command.
-                  [cmd.command!];
+        const commandLines: string[] = Array.isArray(cmd.command)
+            ? cmd.command
+            : [cmd.script!] || [cmd.command!];
         const logic = commandLines.map((line) => `        ${line}`).join('\n');
 
         code += `\n    # ${cmd.description}\n    ${command.join(

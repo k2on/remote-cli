@@ -78,10 +78,12 @@ export const sanitizeString = (
     escapeCharacter: string,
     escapeCharacters: string[],
 ): string => {
-    for (let character of escapeCharacters) {
-        if (character == '\\') character = '\\\\';
+    for (const character of escapeCharacters) {
+        let replacingCharacter = character;
+        if (character == '\\') replacingCharacter = '\\\\';
+        if (character == '|') replacingCharacter = '\\|';
         str = str.replace(
-            new RegExp(character, 'g'),
+            new RegExp(replacingCharacter, 'g'),
             escapeCharacter + character,
         );
     }
