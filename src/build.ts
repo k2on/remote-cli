@@ -41,7 +41,7 @@ export const build = async (directory: string): Promise<void> => {
         createReadabilityScript(ctx.cli.title, 'bash', '##'),
     );
     writeFileSync(
-        join(OUT_DIRECTORY, 'readability_cmd.js'),
+        join(OUT_DIRECTORY, 'readability_batch.js'),
         createReadabilityScript(ctx.cli.title, 'batch', 'REM'),
     );
     writeFileSync(
@@ -63,7 +63,7 @@ export const build = async (directory: string): Promise<void> => {
             ctx.cli,
             cmdAccessor,
             `powershell (Invoke-WebRequest ${cli.uri}).content | cmd`,
-            'cmd',
+            'batch',
             '@echo off',
             ':',
             'REM',
@@ -75,7 +75,7 @@ export const build = async (directory: string): Promise<void> => {
             ctx.cli,
             cmdFileContent,
             `powershell (Invoke-WebRequest ${cli.uri}).content | cmd`,
-            'cmd',
+            'batch',
             '@echo off',
             ':',
             'REM',

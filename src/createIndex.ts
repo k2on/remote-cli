@@ -4,16 +4,16 @@ export const createIndexFile = (
     cli: CLI,
     script: string,
     runCommand: string,
-    scriptType: 'bash' | 'cmd',
+    scriptType: 'bash' | 'batch',
     firstLine: '#!/usr/bin/env bash' | '@echo off',
     comment: '#' | ':',
     tagComment: '##' | 'REM',
 ): string => `${firstLine}
 
-${tagComment} <script src="./readability_${scriptType}.js"></script>
+${tagComment} <script src="${cli.uri}/readability_${scriptType}.js"></script>
 ${tagComment} <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.16.0/themes/prism-okaidia.min.css" rel="stylesheet" />
 ${tagComment} <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.16.0/components/prism-core.min.js" data-manual></script>
-${tagComment} <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.16.0/components/prism-bash.min.js"></script>
+${tagComment} <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.16.0/components/prism-${scriptType}.min.js"></script>
 ${tagComment} <style>body {color: #272822; background-color: #272822; font-size: 0.8em;} </style>
 : ==========================================
 :   Introduction
