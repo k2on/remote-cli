@@ -37,15 +37,46 @@ export const build = async (directory: string): Promise<void> => {
     const cmdAccessor = buildAccessor(ctx);
     createOutDirectory();
     writeFileSync(
-        join(OUT_DIRECTORY, 'readability.js'),
-        createReadabilityScript(ctx.cli.title),
+        join(OUT_DIRECTORY, 'readabilityBash.js'),
+        createReadabilityScript(ctx.cli.title, 'bash', '##'),
+    );
+    writeFileSync(
+        join(OUT_DIRECTORY, 'readabilityCmd.js'),
+        createReadabilityScript(ctx.cli.title, 'batch', 'REM'),
     );
     writeFileSync(
         join(OUT_DIRECTORY, 'index.html'),
-        createIndexFile(ctx.cli, bashFileContent),
+        createIndexFile(
+            ctx.cli,
+            bashFileContent,
+            `curl ${cli.uri} | bash`,
+            'bash',
+            '#!/usr/bin/env bash',
+            '##',
+        ),
     );
     createWindowsDirectory();
-    writeFileSync(join(WINDOWS_OUT_DIRECTORY, 'index.html'), cmdAccessor);
-    writeFileSync(join(OUT_DIRECTORY, 'cmd.html'), cmdFileContent);
+    writeFileSync(
+        join(WINDOWS_OUT_DIRECTORY, 'index.html'),
+        createIndexFile(
+            ctx.cli,
+            cmdAccessor,
+            `powershell (Invoke-WebRequest ${cli.uri}).content | cmd`,
+            'cmd',
+            '@echo off',
+            'REM',
+        ),
+    );
+    writeFileSync(
+        join(OUT_DIRECTORY, 'cmd.html'),
+        createIndexFile(
+            ctx.cli,
+            cmdFileContent,
+            `powershell (Invoke-WebRequest ${cli.uri}).content | cmd`,
+            'cmd',
+            '@echo off',
+            'REM',
+        ),
+    );
     writeFileSync(join(OUT_DIRECTORY, 'CNAME'), cli.uri);
 };

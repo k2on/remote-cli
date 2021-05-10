@@ -3,20 +3,24 @@ import { CLI } from './type';
 export const createIndexFile = (
     cli: CLI,
     script: string,
-): string => `#!/usr/bin/env bash
+    runCommand: string,
+    scriptType: 'bash' | 'cmd',
+    firstLine: '#!/usr/bin/env bash' | '@echo off',
+    tagComment: '##' | 'REM',
+): string => `${firstLine}
 
-## <script src="./readability.js"></script>
-## <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.16.0/themes/prism-okaidia.min.css" rel="stylesheet" />
-## <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.16.0/components/prism-core.min.js" data-manual></script>
-## <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.16.0/components/prism-bash.min.js"></script>
-## <style>body {color: #272822; background-color: #272822; font-size: 0.8em;} </style>
+${tagComment} <script src="./readability.js"></script>
+${tagComment} <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.16.0/themes/prism-okaidia.min.css" rel="stylesheet" />
+${tagComment} <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.16.0/components/prism-core.min.js" data-manual></script>
+${tagComment} <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.16.0/components/prism-bash.min.js"></script>
+${tagComment} <style>body {color: #272822; background-color: #272822; font-size: 0.8em;} </style>
 : ==========================================
 :   Introduction
 : ==========================================
 
 # ${cli.description || 'Remote CLI.'}
 #
-: curl ${cli.uri} | bash
+: ${runCommand}
 #
 
 : ==========================================
@@ -24,11 +28,11 @@ export const createIndexFile = (
 : ==========================================
 
 # The behavior of this script can be modified at runtime by passing environmental
-# variables to the \`bash\` process.
+# variables to the \`${scriptType}\` process.
 #
 # For example, passing an argument called arg1 set to true and one called arg2 set
 # to false would look like this.
-#
+# TODO: IDK FIX THIS
 : curl ${cli.uri} | arg1=true arg2=false bash
 #
 # These arguments are optional, but be aware that explicitly setting them will help
@@ -51,11 +55,11 @@ ${script}
 #
 # This script contains hidden JavaScript which is used to improve
 # readability in the browser (via syntax highlighting, etc), right-click
-# and "View source" of this page to see the entire bash script!
+# and "View source" of this page to see the entire ${scriptType} script!
 #
 # You'll also notice that we use the ":" character in the Introduction
 # which allows our copy/paste commands to be syntax highlighted, but not
-# ran. In bash : is equal to  and true can take infinite arguments
+# ran. In ${scriptType} : is equal to  and true can take infinite arguments
 # while still returning true. This turns these commands into no-ops so
 # when ran as a script, they're totally ignored.
 #`;
