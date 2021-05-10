@@ -19,7 +19,9 @@
         "start:dev": "yarn start ./test-cli",
         "generate-schema": "ts-node scripts/generateSchema.ts",
         "build": "yarn generate-schema & yarn tsc",
-        "publish-pkg": "yarn build & yarn publish --access=public"
+        "publish-pkg": "yarn build & yarn publish --access=public",
+        "bash": "cat out/index.html | bash",
+        "cmd": "cat out/w | cmd"
     },
     "devDependencies": {
         "@nix2/prettier-config": "^1.0.2",

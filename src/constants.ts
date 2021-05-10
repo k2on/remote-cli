@@ -1,5 +1,8 @@
+import { join } from 'path';
+
 export const CLI_FILE_NAME = 'cli.json';
 export const OUT_DIRECTORY = './out';
+export const WINDOWS_OUT_DIRECTORY = join(OUT_DIRECTORY, 'w/');
 
 // Bash Variables
 export const BASH_COLOR_CODES = {
