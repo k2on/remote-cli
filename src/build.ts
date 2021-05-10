@@ -52,6 +52,7 @@ export const build = async (directory: string): Promise<void> => {
             `curl ${cli.uri} | bash`,
             'bash',
             '#!/usr/bin/env bash',
+            '#',
             '##',
         ),
     );
@@ -64,6 +65,7 @@ export const build = async (directory: string): Promise<void> => {
             `powershell (Invoke-WebRequest ${cli.uri}).content | cmd`,
             'cmd',
             '@echo off',
+            ':',
             'REM',
         ),
     );
@@ -75,6 +77,7 @@ export const build = async (directory: string): Promise<void> => {
             `powershell (Invoke-WebRequest ${cli.uri}).content | cmd`,
             'cmd',
             '@echo off',
+            ':',
             'REM',
         ),
     );
