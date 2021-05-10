@@ -21,7 +21,7 @@
         "build": "yarn generate-schema & yarn tsc",
         "publish-pkg": "yarn build & yarn publish --access=public",
         "bash": "cat out/index.html | bash",
-        "cmd": "cat out/w | cmd"
+        "cmd": "copy out\\cmd.html out\\cmd.bat & out\\cmd.bat"
     },
     "devDependencies": {
         "@nix2/prettier-config": "^1.0.2",
