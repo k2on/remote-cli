@@ -1,19 +1,24 @@
 import { join } from 'path';
 import {
-    BASH_COLOR_CODES,
+    COLOR_CODES,
     BASH_TIME_VARIABLES,
     BASH_VARIABLES,
+    BASH_ESCAPE_CHARACTER,
+    BASH_ESCAPE_CHARACTERS,
 } from './constants';
 import { Context, Menu, Command } from './type';
-import { buildSplash, getFile } from './util';
+import { buildSplash, copyObject, getFile, sanitizeString } from './util';
 
 const buildFunc = (name: string, description: string, code: string): string =>
     `\n# ${description}\n${name} ()\n{\n${code.split('\n').join('\n')}\n}\n\n`;
 
+const sanitizeBashString = (str: string): string =>
+    sanitizeString(str, BASH_ESCAPE_CHARACTER, BASH_ESCAPE_CHARACTERS);
+
 const buildVariables = () => {
     const variables: Record<string, string> = BASH_VARIABLES;
 
-    for (const [colorName, number] of Object.entries(BASH_COLOR_CODES)) {
+    for (const [colorName, number] of Object.entries(COLOR_CODES)) {
         variables[colorName] = `'\\e[${number}m'`;
     }
 
@@ -75,7 +80,7 @@ const buildProcess = (name: string, menu: Menu): string => {
     let code = `IFS=' ' read -ra parts <<< "$1"
 case "\${parts[0]}" in`;
 
-    const commands = Object.assign(menu.commands, {
+    const commands = Object.assign(copyObject<Command>(menu.commands || {}), {
         clear: {
             description: 'Clear the screen.',
             command: name,
@@ -106,15 +111,9 @@ case "\${parts[0]}" in`;
                 'either a script or command must be specified for ' +
                     commandName,
             );
-        const commandLines =
-            cmd.script != undefined
-                ? // script function name
-                  [cmd.script!]
-                : Array.isArray(cmd.command)
-                ? // Multi-line command.
-                  cmd.command!
-                : // Single-line command.
-                  [cmd.command!];
+        const commandLines: string[] = Array.isArray(cmd.command)
+            ? cmd.command
+            : [cmd.script!] || [cmd.command!];
         const logic = commandLines.map((line) => `        ${line}`).join('\n');
 
         code += `\n    # ${cmd.description}\n    ${command.join(
@@ -154,7 +153,7 @@ IFS=
 clear
 ${buildHeader(menu)}
 
-printf "${await buildSplash(menu.splash)}"
+printf "${await buildSplash(menu.splash, sanitizeBashString)}"
 echo ""
 
 if [ "$1" != true ];

@@ -10,6 +10,9 @@ const ajv = new Ajv({
     allowUnionTypes: true,
 });
 
+export const copyObject = <T>(obj: Record<string, T>): Record<string, T> =>
+    Object.assign({}, obj);
+
 export const getSyntaxErrorDetails = (
     message: string,
     content: string,
@@ -70,24 +73,22 @@ export const getFile = <T = string>(path: string, schema?: JSONSchema): T => {
     return json as T;
 };
 
-export const parseString = (str: string): string =>
-    str
-        .replace(/\\/g, '\\\\')
-        .replace(/'/g, "\\'")
-        .replace(/`/g, '\\`')
-        .replace(/"/g, '\\"');
-
-// asciimo.Figlet.write(splash.text, splash.font, (art: string) => {
-//     result.b =
-//         splash.color != undefined
-//             ? `$${splash.color.toUpperCase()}${art}$RESET`
-//             : art;
-//     console.log(result);
-// });
-// while (result.b == '') {
-//     console.log(result);
-// }
-// console.log(result);
+export const sanitizeString = (
+    str: string,
+    escapeCharacter: string,
+    escapeCharacters: string[],
+): string => {
+    for (const character of escapeCharacters) {
+        let replacingCharacter = character;
+        if (character == '\\') replacingCharacter = '\\\\';
+        if (character == '|') replacingCharacter = '\\|';
+        str = str.replace(
+            new RegExp(replacingCharacter, 'g'),
+            escapeCharacter + character,
+        );
+    }
+    return str;
+};
 
 export const figlet = (text: string, font: string): Promise<string> => {
     return new Promise<string>((resolve, _) => {
@@ -96,11 +97,13 @@ export const figlet = (text: string, font: string): Promise<string> => {
         });
     });
 };
+
 export const buildSplash = async (
     splash: string | Splash | undefined,
+    sanitizeStringFunction: (s: string) => string,
 ): Promise<string> => {
     if (splash == undefined) return '';
-    if (typeof splash == 'string') return parseString(splash);
-    const fig = parseString(await figlet(splash.text, splash.font));
+    if (typeof splash == 'string') return sanitizeStringFunction(splash);
+    const fig = sanitizeStringFunction(await figlet(splash.text, splash.font));
     return splash.color ? `\${${splash.color.toUpperCase()}}${fig}$RESET` : fig;
 };

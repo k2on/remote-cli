@@ -4,8 +4,7 @@ export const CLI_FILE_NAME = 'cli.json';
 export const OUT_DIRECTORY = './out';
 export const WINDOWS_OUT_DIRECTORY = join(OUT_DIRECTORY, 'w/');
 
-// Bash Variables
-export const BASH_COLOR_CODES = {
+export const COLOR_CODES = {
     RESET: 0,
     BLACK: 30,
     RED: 31,
@@ -41,8 +40,21 @@ export const BASH_COLOR_CODES = {
     BG_WHITE: 107,
 };
 
+export const BASH_ESCAPE_CHARACTER = '\\';
+export const BASH_ESCAPE_CHARACTERS = ['\\', '"', '`', "'"];
+
+export const BATCH_ESCAPE_CHARACTER = '^';
+export const BATCH_ESCAPE_CHARACTERS = ['>', '|'];
+
 export const BASH_VARIABLES = {
     USER: '$(whoami)',
 };
+export const BATCH_VARIABLES = {
+    USER: '%username%',
+    func: '',
+};
+export const BATCH_ADDITIONAL_VARIABLE_NAMES = ['TIME'];
 
 export const BASH_TIME_VARIABLES = 'TIME=`date "+%m/%d/%Y %H:%M:%S"`';
+
+export const BATCH_TIME_VARIABLES = ``;
