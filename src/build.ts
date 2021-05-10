@@ -37,11 +37,11 @@ export const build = async (directory: string): Promise<void> => {
     const cmdAccessor = buildAccessor(ctx);
     createOutDirectory();
     writeFileSync(
-        join(OUT_DIRECTORY, 'readabilityBash.js'),
+        join(OUT_DIRECTORY, 'readability_bash.js'),
         createReadabilityScript(ctx.cli.title, 'bash', '##'),
     );
     writeFileSync(
-        join(OUT_DIRECTORY, 'readabilityCmd.js'),
+        join(OUT_DIRECTORY, 'readability_cmd.js'),
         createReadabilityScript(ctx.cli.title, 'batch', 'REM'),
     );
     writeFileSync(

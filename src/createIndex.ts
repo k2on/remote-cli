@@ -9,7 +9,7 @@ export const createIndexFile = (
     tagComment: '##' | 'REM',
 ): string => `${firstLine}
 
-${tagComment} <script src="./readability.js"></script>
+${tagComment} <script src="./readability_${scriptType}.js"></script>
 ${tagComment} <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.16.0/themes/prism-okaidia.min.css" rel="stylesheet" />
 ${tagComment} <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.16.0/components/prism-core.min.js" data-manual></script>
 ${tagComment} <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.16.0/components/prism-bash.min.js"></script>
