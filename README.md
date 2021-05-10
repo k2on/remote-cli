@@ -1,18 +1,35 @@
-<p align="center"><img height="220px" src="https://i.imgur.com/48BeKfE.png" alt="Logo" /><p>
+# Shell Builder
 
-<p align="center">
-  <strong>Remote CLI</strong><br />
-  <sub>A tool for building remote CLIs.</sub>
-</p>
+Shell builder is a tool for building shells that can be accessed remotely from any computer with a simple `curl` command piped to `bash` (even works with Windows).
 
-<p align="center">
-  [ <a href="#installation">Installation 💾</a> | <a href="#usage">Usage 🤓</a> | <a href="https://www.npmjs.com/package/@nix2/PACKAGE_NAME">NPM 📦</a> | <a href="https://github.com/nix2io/readme-template">Github 🕸</a> ]
-</p>
+<img height="400px" src="https://imgur.com/1ISoPzw.png">
 
-# Installation
+## Usage
+
+### Github Actions
 
 ```sh
-yarn add -D remote-cli
+npx shell-builder
 ```
 
-# Usage
+Running this script will build the shell files and generate the output in an `out/` directory.
+
+### Mac, Linux, & WSL
+
+```sh
+curl your.url | bash
+```
+
+### Windows
+
+```cmd
+powershell (Invoke-WebRequest your.url).content | cmd
+```
+
+> **NOTE**: If there is a shorter way to do this please create an issue and let me know.
+
+### CLI Files
+
+The structure of the shell should be in a file called `cli.json`.
+
+All the functions in the shell should in the directory `funcs/` with file extensions `.sh` and `.bat`.

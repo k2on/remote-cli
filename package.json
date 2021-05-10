@@ -4,7 +4,7 @@
     "description": "A tool for building remote shells.",
     "main": "./dist/index.js",
     "types": "./dist/index.d.ts",
-    "repository": "https://github.com/nix2io/package-template.git",
+    "repository": "https://github.com/k2on/shell-builder.git",
     "author": "Max Koon <maxk@nix2.io>",
     "license": "MIT",
     "private": false,
