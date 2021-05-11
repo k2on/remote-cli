@@ -54,6 +54,8 @@ export const BATCH_VARIABLES = {
     SHELL: 'BATCH',
     USER: '%username%',
     func: '',
+    errMsg: '',
+    exit: '0',
 };
 export const BATCH_ADDITIONAL_VARIABLE_NAMES = ['TIME'];
 

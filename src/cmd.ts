@@ -21,16 +21,14 @@ exit /b
 :end_func_${name}
 `;
 
-const callFunc = (
-    name: string,
-    args: string | string[] = [],
-    encloseArgument = false,
-) => {
-    if (typeof args == 'string') args = [args];
+const callFunc = (name: string, ...args: string[]) => {
+    args = args.map((arg) =>
+        new RegExp(/^\$[a-zA-Z0-9_]*$/).test(arg)
+            ? `%${arg.substring(1)}%`
+            : `"${arg}"`,
+    );
     return `set func=${name}
-    call :func_${name} ${args
-        .map((arg) => (encloseArgument ? `"%${arg}%"` : `%${arg}%`))
-        .join(' ')}\n`;
+    call :func_${name} ${args.join(' ')}\n`;
 };
 
 const buildVariables = () => {
@@ -46,7 +44,7 @@ const buildVariables = () => {
 };
 
 const buildError = () =>
-    buildFunc('error', 'The error function.', 'echo Error: %~1');
+    buildFunc('error', 'The error function.', 'echo %RED%Error: %~1 %RESET%');
 
 const includeScripts = (ctx: Context) => {
     let scripts = '';
@@ -129,12 +127,12 @@ const buildProcess = (name: string, menu: Menu): string => {
     const commands = Object.assign(copyObject<Command>(menu.commands || {}), {
         clear: {
             description: 'Clear the screen.',
-            batchCommand: name,
+            batchCommand: callFunc(name).split('\n'),
             aliases: ['cls', 'c'],
         },
         exit: {
             description: 'Exit the CLI.',
-            batchCommand: ['cls', 'exit 0'],
+            batchCommand: ['echo %RED%Exiting...%RESET%', 'set exit=1'],
             aliases: ['ex', 'e'],
         },
         help: {
@@ -182,7 +180,7 @@ ${error('"%1" is not a valid command.')}
 };
 
 const error = (message: string): string =>
-    `set errorMsg=${message}\n${callFunc('error', 'errorMsg', true)}`;
+    `set errMsg=${message}\n${callFunc('error', message)}`;
 
 const buildPrompt = (name: string, menu: Menu): string =>
     buildProcess(name, menu) +
@@ -191,9 +189,13 @@ const buildPrompt = (name: string, menu: Menu): string =>
         `Create the ${name} prompt.`,
         `${prompt(menu.prefix || '> ')}
 if "%input%" == "NO_INPUT" goto end_switch
-${callFunc(`process_${name}`, 'input')}
+${callFunc(`process_${name}`, '$input')}
 :end_switch
-${callFunc(`prompt_${name}`)}`,
+if "%exit%" == "0" (
+${callFunc(`prompt_${name}`)}
+)
+exit /b
+`,
     );
 
 const buildMenu = async (name: string, menu: Menu) =>
@@ -231,6 +233,10 @@ export const buildCMD = async (ctx: Context): Promise<string> => {
     }
 
     file += callFunc(ctx.cli.mainMenu);
+
+    file += `:cleanup
+cls
+`;
 
     return file;
 };
