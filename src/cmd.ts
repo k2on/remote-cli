@@ -21,9 +21,17 @@ exit /b
 :end_func_${name}
 `;
 
-const callFunc = (name: string, ...args: string[]) =>
-    `set func=${name}
-call :func_${name} ${args.map((arg) => `%${arg}%`).join(' ')}\n`;
+const callFunc = (
+    name: string,
+    args: string | string[] = [],
+    encloseArgument = false,
+) => {
+    if (typeof args == 'string') args = [args];
+    return `set func=${name}
+    call :func_${name} ${args
+        .map((arg) => (encloseArgument ? `"%${arg}%"` : `%${arg}%`))
+        .join(' ')}\n`;
+};
 
 const buildVariables = () => {
     for (const [colorName, number] of Object.entries(COLOR_CODES)) {
@@ -37,7 +45,8 @@ const buildVariables = () => {
     return builtVariables;
 };
 
-const buildError = () => buildFunc('error', 'The error function.', 'echo %1');
+const buildError = () =>
+    buildFunc('error', 'The error function.', 'echo Error: %~1');
 
 const includeScripts = (ctx: Context) => {
     let scripts = '';
@@ -116,7 +125,7 @@ const buildHeader = (menu: Menu): string => {
 };
 
 const buildProcess = (name: string, menu: Menu): string => {
-    let code = '';
+    let code = 'set valid_command=0';
     const commands = Object.assign(copyObject<Command>(menu.commands || {}), {
         clear: {
             description: 'Clear the screen.',
@@ -160,13 +169,20 @@ const buildProcess = (name: string, menu: Menu): string => {
         }
         code += `
 if ${ifStatement} (
+    set valid_command=1
 ${logic}
 )
 `;
     }
+    code += `if NOT "%valid_command%" == "1" (
+${error('"%1" is not a valid command.')}
+)`;
 
     return buildFunc(`process_${name}`, `Process a ${name} command.`, code);
 };
+
+const error = (message: string): string =>
+    `set errorMsg=${message}\n${callFunc('error', 'errorMsg', true)}`;
 
 const buildPrompt = (name: string, menu: Menu): string =>
     buildProcess(name, menu) +
