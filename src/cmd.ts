@@ -14,8 +14,8 @@ const variables: Record<string, string> = BATCH_VARIABLES;
 
 const buildFunc = (name: string, description: string, code: string): string =>
     `: ${description}
-if NOT "%func%" == "${name}" goto end_func_${name}
 :func_${name}
+if NOT "%func%" == "${name}" goto end_func_${name}
 ${code}
 exit /b
 :end_func_${name}
@@ -60,7 +60,14 @@ const convertVariables = (str: string): string => {
         ...BATCH_ADDITIONAL_VARIABLE_NAMES,
     );
     for (const variableName of variableNames) {
-        str = str.replace(`$${variableName}`, `%${variableName}%`);
+        str = str.replace(
+            new RegExp(`\\$${variableName}`, 'g'),
+            `%${variableName}%`,
+        );
+        str = str.replace(
+            new RegExp(`\\\${${variableName}}`, 'g'),
+            `%${variableName}%`,
+        );
     }
     return str;
 };
@@ -113,12 +120,12 @@ const buildProcess = (name: string, menu: Menu): string => {
     const commands = Object.assign(copyObject<Command>(menu.commands || {}), {
         clear: {
             description: 'Clear the screen.',
-            command: name,
+            batchCommand: name,
             aliases: ['cls', 'c'],
         },
         exit: {
             description: 'Exit the CLI.',
-            command: ['cls', 'exit 0'],
+            batchCommand: ['cls', 'exit 0'],
             aliases: ['ex', 'e'],
         },
         help: {
@@ -126,19 +133,18 @@ const buildProcess = (name: string, menu: Menu): string => {
             aliases: ['?', 'h'],
         },
     } as Record<string, Command>);
-    commands.help.command = generateHelpCommand(name, commands);
+    commands.help.batchCommand = generateHelpCommand(name, commands);
     for (const [commandName, cmd] of Object.entries(commands)) {
         const command = [commandName];
         command.push(...(cmd.aliases || []));
 
-        if (cmd.script == undefined && cmd.command == undefined)
+        if (cmd.script == undefined && cmd.batchCommand == undefined)
             throw new Error(
-                'either a script or command must be specified for ' +
-                    commandName,
+                `Command: '${commandName}' must have a script or batchCommand`,
             );
-        const commandLines: string[] = Array.isArray(cmd.command)
-            ? cmd.command
-            : [cmd.script!] || [cmd.command!];
+        const commandLines: string[] = Array.isArray(cmd.batchCommand)
+            ? cmd.batchCommand
+            : [(cmd.script || cmd.batchCommand)!];
         const logic = commandLines.map((line) => `    ${line}`).join('\n');
 
         code += `: ${cmd.description}\n`;
@@ -171,7 +177,7 @@ const buildPrompt = (name: string, menu: Menu): string =>
 if "%input%" == "NO_INPUT" goto end_switch
 ${callFunc(`process_${name}`, 'input')}
 :end_switch
-goto func_prompt_${name}`,
+${callFunc(`prompt_${name}`)}`,
     );
 
 const buildMenu = async (name: string, menu: Menu) =>
@@ -183,7 +189,7 @@ const buildMenu = async (name: string, menu: Menu) =>
 cls
 ${buildHeader(menu)}
 
-${multilineEcho(await buildSplash(menu.splash, sanitizeBatchString))}
+${multilineEcho(await buildSplash(sanitizeBatchString, menu.splash))}
 
 ${callFunc(`prompt_${name}`)}
 `,

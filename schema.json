@@ -11,18 +11,28 @@
             "type": "object",
             "properties": {
                 "prefix": {
+                    "title": "Prefix",
+                    "description": "The prefix for a menu input.",
                     "type": "string"
                 },
                 "header": {
+                    "title": "Header",
+                    "description": "The header for the menu.",
                     "type": "string"
                 },
                 "splash": {
+                    "title": "Splash",
+                    "description": "Text to display when in the menu (Good for ASCII art).",
                     "type": ["string", "object"],
                     "properties": {
                         "text": {
+                            "title": "Text",
+                            "description": "The text of the splash.",
                             "type": "string"
                         },
                         "font": {
+                            "title": "Font",
+                            "description": "A supported font from Figlet.",
                             "type": "string",
                             "enum": [
                                 "3-d",
@@ -180,15 +190,53 @@
                             ]
                         },
                         "color": {
-                            "type": "string"
+                            "title": "Color",
+                            "description": "The color of the splash text.",
+                            "type": "string",
+                            "enum": [
+                                "RESET",
+                                "BLACK",
+                                "RED",
+                                "GREEN",
+                                "YELLOW",
+                                "BLUE",
+                                "MAGENTA",
+                                "CYAN",
+                                "GREY",
+                                "DARK_GREY",
+                                "BRIGHT_RED",
+                                "BRIGHT_GREEN",
+                                "BRIGHT_YELLOW",
+                                "BRIGHT_BLUE",
+                                "BRIGHT_PURPLE",
+                                "BRIGHT_CYAN",
+                                "WHITE",
+                                "BG_BLACK",
+                                "BG_RED",
+                                "BG_GREEN",
+                                "BG_YELLOW",
+                                "BG_BLUE",
+                                "BG_MAGENTA",
+                                "BG_CYAN",
+                                "BG_GREY",
+                                "BG_DARK_GREY",
+                                "BG_BRIGHT_RED",
+                                "BG_BRIGHT_GREEN",
+                                "BG_BRIGHT_YELLOW",
+                                "BG_BRIGHT_BLUE",
+                                "BG_BRIGHT_PURPLE",
+                                "BG_BRIGHT_CYAN",
+                                "BG_WHITE"
+                            ]
                         }
                     },
                     "required": ["text", "font"],
                     "additionalProperties": false
                 },
                 "commands": {
-                    "type": "object",
+                    "title": "Commands",
                     "description": "The commands for a menu.",
+                    "type": "object",
                     "additionalProperties": {
                         "$ref": "#/definitions/command"
                     }
@@ -202,24 +250,52 @@
             "type": "object",
             "properties": {
                 "description": {
+                    "title": "Description",
+                    "description": "Description of the command.",
                     "type": "string"
                 },
                 "script": {
+                    "title": "Script",
+                    "description": "The script file name.",
                     "type": "string"
                 },
-                "command": {
+                "bashCommand": {
+                    "title": "Bash Command",
+                    "description": "The bash command.",
+                    "type": ["string", "array"],
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "batchCommand": {
+                    "title": "Batch Command",
+                    "description": "The batch command.",
                     "type": ["string", "array"],
                     "items": {
                         "type": "string"
                     }
                 },
                 "aliases": {
+                    "title": "Aliases",
+                    "description": "Command aliases.",
                     "type": "array",
                     "items": {
                         "type": "string"
                     }
+                },
+                "shellType": {
+                    "title": "Shell Type",
+                    "description": "Include this command only in the specified shell.",
+                    "type": "string",
+                    "enum": ["bash", "batch"]
+                },
+                "visibility": {
+                    "title": "Visibility",
+                    "description": "The visibility of the command, `true` or `false`, or an auth level.",
+                    "type": ["boolean", "number"]
                 }
             },
+            "additionalProperties": false,
             "required": ["description"]
         }
     },
@@ -228,17 +304,24 @@
             "type": "string"
         },
         "title": {
+            "title": "Title",
+            "description": "The title of the shell.",
             "type": "string"
         },
         "description": {
+            "title": "Description",
+            "description": "The description of the shell.",
             "type": "string"
         },
         "uri": {
+            "title": "URI",
+            "description": "The URI where the scripts are hosted.",
             "type": "string"
         },
         "menus": {
-            "type": "object",
+            "title": "Menus",
             "description": "The menus for the CLI.",
+            "type": "object",
             "additionalProperties": {
                 "$ref": "#/definitions/menu"
             }

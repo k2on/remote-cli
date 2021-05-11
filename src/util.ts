@@ -99,11 +99,14 @@ export const figlet = (text: string, font: string): Promise<string> => {
 };
 
 export const buildSplash = async (
-    splash: string | Splash | undefined,
     sanitizeStringFunction: (s: string) => string,
+    splash?: Splash,
 ): Promise<string> => {
     if (splash == undefined) return '';
     if (typeof splash == 'string') return sanitizeStringFunction(splash);
-    const fig = sanitizeStringFunction(await figlet(splash.text, splash.font));
-    return splash.color ? `\${${splash.color.toUpperCase()}}${fig}$RESET` : fig;
+    const fig = await figlet(splash.text, splash.font);
+    const coloredFig = splash.color
+        ? `\${${splash.color.toUpperCase()}}${fig}$RESET`
+        : fig;
+    return sanitizeStringFunction(coloredFig);
 };

@@ -6,8 +6,8 @@ export interface Context {
     cli: CLI;
 }
 
-export interface Splash {
-    text: string;
-    font: string;
-    color?: string;
-}
+// export interface Splash {
+//     text: string;
+//     font: string;
+//     color?: string;
+// }

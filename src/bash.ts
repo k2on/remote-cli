@@ -83,12 +83,12 @@ case "\${parts[0]}" in`;
     const commands = Object.assign(copyObject<Command>(menu.commands || {}), {
         clear: {
             description: 'Clear the screen.',
-            command: name,
+            bashCommand: name,
             aliases: ['cls', 'c'],
         },
         exit: {
             description: 'Exit the CLI.',
-            command: ['clear', 'exit 0'],
+            bashCommand: ['clear', 'exit 0'],
             aliases: ['ex', 'e'],
         },
         help: {
@@ -97,23 +97,21 @@ case "\${parts[0]}" in`;
         },
         '*': {
             description: 'Invalid command.',
-            command: 'error "\\"${parts[0]}\\" is not a valid command."',
+            bashCommand: 'error "\\"${parts[0]}\\" is not a valid command."',
         },
     } as Record<string, Command>);
-    commands.help.command = generateHelpCommand(name, commands);
+    commands.help.bashCommand = generateHelpCommand(name, commands);
 
     for (const [commandName, cmd] of Object.entries(commands)) {
         const command = [commandName];
         command.push(...(cmd.aliases || []));
-
-        if (cmd.script == undefined && cmd.command == undefined)
+        if (!cmd.script && !cmd.bashCommand)
             throw new Error(
-                'either a script or command must be specified for ' +
-                    commandName,
+                `Command: '${commandName}' must have a script or bashCommand`,
             );
-        const commandLines: string[] = Array.isArray(cmd.command)
-            ? cmd.command
-            : [cmd.script!] || [cmd.command!];
+        const commandLines: string[] = Array.isArray(cmd.bashCommand)
+            ? cmd.bashCommand
+            : [(cmd.script || cmd.bashCommand)!];
         const logic = commandLines.map((line) => `        ${line}`).join('\n');
 
         code += `\n    # ${cmd.description}\n    ${command.join(
@@ -153,7 +151,7 @@ IFS=
 clear
 ${buildHeader(menu)}
 
-printf "${await buildSplash(menu.splash, sanitizeBashString)}"
+printf "${await buildSplash(sanitizeBashString, menu.splash)}"
 echo ""
 
 if [ "$1" != true ];

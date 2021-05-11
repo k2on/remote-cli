@@ -47,9 +47,11 @@ export const BATCH_ESCAPE_CHARACTER = '^';
 export const BATCH_ESCAPE_CHARACTERS = ['>', '|'];
 
 export const BASH_VARIABLES = {
+    SHELL: 'BASH',
     USER: '$(whoami)',
 };
 export const BATCH_VARIABLES = {
+    SHELL: 'BATCH',
     USER: '%username%',
     func: '',
 };
