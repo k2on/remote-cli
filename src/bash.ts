@@ -5,9 +5,17 @@ import {
     BASH_VARIABLES,
     BASH_ESCAPE_CHARACTER,
     BASH_ESCAPE_CHARACTERS,
+    DEFAULT_PROMPT_FORMAT,
 } from './constants';
 import { Context, Menu, Command } from './type';
-import { buildSplash, copyObject, getFile, sanitizeString } from './util';
+import {
+    buildSplash,
+    capitalize,
+    copyObject,
+    getFile,
+    sanitizeString,
+    tab,
+} from './util';
 
 const buildFunc = (name: string, description: string, code: string): string =>
     `\n# ${description}\n${name} ()\n{\n${code.split('\n').join('\n')}\n}\n\n`;
@@ -46,7 +54,17 @@ const includeScripts = (ctx: Context) => {
             const script = getFile(
                 join(ctx.directory, `funcs/${command.script}.sh`),
             );
-            scripts += buildFunc(commandName, command.description, script);
+            let definedArgs = '';
+            let argCount = 1;
+            for (const argName of Object.keys(command.args || {})) {
+                definedArgs += `${argName}=$${argCount}\n`;
+                argCount++;
+            }
+            scripts += buildFunc(
+                commandName,
+                command.description,
+                definedArgs + script,
+            );
         }
     }
     return scripts;
@@ -74,6 +92,52 @@ const generateHelpCommand = (
 const buildHeader = (menu: Menu): string => {
     if (!menu.header) return '';
     return `${BASH_TIME_VARIABLES}\nprintf "\${BG_DARK_GREY}${menu.header} $RESET"\necho ""`;
+};
+
+const valueToBash = (value: string | number | boolean): string =>
+    typeof value == 'string' ? `"${value}"` : '' + value;
+
+const buildArgCheck = (cmd: Command): string => {
+    const args = cmd.args || {},
+        argNames = Object.keys(args);
+    let code = '';
+    if (argNames.length == 0) return code;
+    code = '# Argument validation.\n';
+    let argCount = 1;
+    for (const argName of argNames) {
+        const arg = args[argName];
+        const internalArgName = argName;
+
+        // The logic if an arg is not defined.
+        let noDefinedArgLogic;
+        if (Object.keys(arg).includes('default')) {
+            noDefinedArgLogic = `${internalArgName}=${valueToBash(
+                arg.default!,
+            )}\n`;
+        } else {
+            const promptMessage = arg.promptMessage || capitalize(argName);
+            const promptPrefix = DEFAULT_PROMPT_FORMAT.replace(
+                '{PROMPT}',
+                promptMessage,
+            );
+            noDefinedArgLogic = prompt(promptPrefix, internalArgName);
+        }
+
+        code += `${internalArgName}=\${parts[${argCount}]}
+if [ "$${internalArgName}" == "" ];
+then
+    ${noDefinedArgLogic}
+fi`;
+
+        argCount++;
+    }
+    return tab(code, 2);
+};
+
+const includeArgsInScript = (cmd: Command): string | undefined => {
+    if (!cmd.script) return undefined;
+    const args = Object.keys(cmd.args || {});
+    return `${cmd.script} ${args.map((arg) => `$${arg}`).join(' ')}`;
 };
 
 const buildProcess = (name: string, menu: Menu): string => {
@@ -111,20 +175,22 @@ case "\${parts[0]}" in`;
             );
         const commandLines: string[] = Array.isArray(cmd.bashCommand)
             ? cmd.bashCommand
-            : [(cmd.script || cmd.bashCommand)!];
-        const logic = commandLines.map((line) => `        ${line}`).join('\n');
+            : [(includeArgsInScript(cmd) || cmd.bashCommand)!];
+        const logic = tab(commandLines.join('\n'), 2);
+
+        const argCheck = buildArgCheck(cmd);
 
         code += `\n    # ${cmd.description}\n    ${command.join(
             ' | ',
-        )})\n${logic}\n        ;;`;
+        )})\n${argCheck}\n${logic}\n        ;;`;
     }
     code += '\nesac';
 
     return buildFunc(`process_${name}`, `Process a ${name} command.`, code);
 };
 
-const prompt = (prefix: string) =>
-    `printf "${prefix}"\nread -p "" input < /dev/tty`;
+const prompt = (prefix: string, variable = 'input') =>
+    `printf "${prefix}"\nread -p "" ${variable} < /dev/tty\nprintf $RESET`;
 
 const buildPrompt = (name: string, menu: Menu): string =>
     buildProcess(name, menu) +

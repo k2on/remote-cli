@@ -40,6 +40,9 @@ export const COLOR_CODES = {
     BG_WHITE: 107,
 };
 
+export const DEFAULT_PROMPT_FORMAT =
+    '$BRIGHT_GREEN?$WHITE {PROMPT} $BRIGHT_CYAN';
+
 export const BASH_ESCAPE_CHARACTER = '\\';
 export const BASH_ESCAPE_CHARACTERS = ['\\', '"', '`', "'"];
 

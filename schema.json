@@ -244,6 +244,24 @@
             },
             "additionalProperties": false
         },
+        "argument": {
+            "title": "Argument",
+            "description": "A command argument",
+            "type": "object",
+            "properties": {
+                "default": {
+                    "title": "Default Value",
+                    "description": "The default value of the argument.",
+                    "type": ["string", "number", "boolean"]
+                },
+                "promptMessage": {
+                    "title": "Prompt Message",
+                    "description": "The message to show when a user is entering the argument.",
+                    "type": "string"
+                }
+            },
+            "additionalProperties": false
+        },
         "command": {
             "title": "Command",
             "description": "A CLI command.",
@@ -253,6 +271,14 @@
                     "title": "Description",
                     "description": "Description of the command.",
                     "type": "string"
+                },
+                "args": {
+                    "title": "Arguments",
+                    "description": "Arguments of the command.",
+                    "type": "object",
+                    "additionalProperties": {
+                        "$ref": "#/definitions/argument"
+                    }
                 },
                 "script": {
                     "title": "Script",

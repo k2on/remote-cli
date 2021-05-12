@@ -10,6 +10,15 @@ const ajv = new Ajv({
     allowUnionTypes: true,
 });
 
+export const capitalize = (str: string): string =>
+    str[0].toUpperCase() + str.substring(1);
+
+export const tab = (str: string, tabs = 1): string =>
+    str
+        .split('\n')
+        .map((line) => Array(tabs + 1).join('    ') + line)
+        .join('\n');
+
 export const copyObject = <T>(obj: Record<string, T>): Record<string, T> =>
     Object.assign({}, obj);
 
