@@ -127,7 +127,8 @@ const buildArgCheck = (cmd: Command): string => {
 if [ "$${internalArgName}" == "" ];
 then
     ${noDefinedArgLogic}
-fi`;
+fi
+`;
 
         argCount++;
     }
@@ -223,7 +224,8 @@ echo ""
 if [ "$1" != true ];
 then
     prompt_${name}
-fi`,
+fi
+`,
     );
 
 export const buildBash = async (ctx: Context): Promise<string> => {
