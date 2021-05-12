@@ -228,6 +228,18 @@ fi
 `,
     );
 
+export const buildShortCommand = (name: string): string => {
+    const code = `if [ "$c" != "" ];
+then
+    IFS=',' read -ra parts <<< "$c"
+    process_${name} $parts
+    exit
+fi
+`;
+
+    return code;
+};
+
 export const buildBash = async (ctx: Context): Promise<string> => {
     let file = '#!/usr/bin/env bash\n';
 
@@ -240,7 +252,7 @@ export const buildBash = async (ctx: Context): Promise<string> => {
     for (const [name, menu] of Object.entries(ctx.cli.menus || {})) {
         file += await buildMenu(name, menu);
     }
-
+    file += buildShortCommand(ctx.cli.mainMenu);
     file += ctx.cli.mainMenu;
 
     return file;
