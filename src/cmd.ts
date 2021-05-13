@@ -223,6 +223,7 @@ const buildShortCommand = (name: string): string =>
     `if NOT "%c%" == "" (
 set parts=%c%
 ${callFunc(`process_${name}`, '$parts')}
+pause
 exit
 )
 `;
