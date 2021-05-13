@@ -219,6 +219,14 @@ export const buildAccessor = (
 start %temp%\\shell.bat
 exit`;
 
+const buildShortCommand = (name: string): string =>
+    `if NOT "%c%" == "" (
+set parts=%c%
+${callFunc(`process_${name}`, '$parts')}
+exit
+)
+`;
+
 export const buildCMD = async (ctx: Context): Promise<string> => {
     let file = '@echo off & setLocal EnableDelayedExpansion\n';
 
@@ -232,6 +240,7 @@ export const buildCMD = async (ctx: Context): Promise<string> => {
         file += await buildMenu(name, menu);
     }
 
+    file += buildShortCommand(ctx.cli.mainMenu);
     file += callFunc(ctx.cli.mainMenu);
 
     file += `:cleanup

@@ -228,7 +228,7 @@ fi
 `,
     );
 
-export const buildShortCommand = (name: string): string => {
+const buildShortCommand = (name: string): string => {
     const code = `if [ "$c" != "" ];
 then
     IFS=',' read -ra parts <<< "$c"
