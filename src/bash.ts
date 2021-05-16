@@ -19,6 +19,7 @@ import {
     getFile,
     sanitizeString,
     tab,
+    parseCommands,
 } from './util';
 
 const scriptFiles: string[] = [];
@@ -53,6 +54,42 @@ const buildError = () =>
         'printf "${RED}ERROR: $1${RESET}"\necho ""',
     );
 
+const success = (message: string): string =>
+    `printf "\${GREEN}${message}\${RESET}\n"`;
+
+const buildAuth = (ctx: Context): string => {
+    let code = '';
+    for (const [authLevel, auth] of Object.entries(ctx.cli.auth || {})) {
+        let authCode = '';
+
+        switch (auth.type) {
+            case 'hash':
+                authCode = `${prompt('Key: ', 'key', true)}
+hashed_key=\`echo -n $key | shasum | awk '{print $1}'\`
+echo ""
+if [ "$hashed_key" != "${auth.hash}" ];
+then
+error "Invalid Key"
+return 1
+fi
+AUTH_LEVEL=${authLevel}
+${success(`Authenticated to level ${authLevel} access.`)}
+return 0
+`;
+                break;
+            default:
+                throw Error(`Auth type '${auth.type}' is invalid.`);
+        }
+
+        code += buildFunc(
+            `auth_${authLevel}`,
+            `Authenticate to level ${authLevel}`,
+            authCode,
+        );
+    }
+    return code;
+};
+
 const includeScripts = (ctx: Context) => {
     let scripts = '';
     for (const menu of Object.values(ctx.cli.menus || {})) {
@@ -83,35 +120,32 @@ const includeScripts = (ctx: Context) => {
     return scripts;
 };
 
-const parseCommands = (
-    commandsRefrence: Record<string, Command>,
-): Record<string, Command> => {
-    const parsedCommands: Record<string, Command> = {};
-    const commands = copyObject(commandsRefrence);
-    for (const [name, cmd] of Object.entries(commands)) {
-        // Remove the catch all.
-        if (name == '*') continue;
-        // If the command is hidden.
-        if (typeof cmd.visibility == 'boolean' && !cmd.visibility) continue;
-        // If the auth level is greater than 0.
-        if (typeof cmd.visibility == 'number' && cmd.visibility > 0) continue;
-        // If there is no batch command.
-        if (!cmd.script && !cmd.bashCommand) continue;
-        // If there is no script for the shell
-        if (cmd.script && !scriptFiles.includes(`${cmd.script}.sh`)) continue;
-        // Command supported.
-        parsedCommands[name] = cmd;
-    }
-
-    return parsedCommands;
-};
+const parseBashCommands = (commands: Record<string, Command>, authLevel = 0) =>
+    parseCommands(scriptFiles, 'bashCommand', 'sh', commands, authLevel);
 
 const generateBashHelpCommand = (
+    ctx: Context,
     name: string,
     commands: Record<string, Command>,
 ): string => {
-    const helpMessage = generateHelpCommand(name, parseCommands(commands));
-    return `printf "${helpMessage}"`;
+    const helpMessage = generateHelpCommand(
+        `Showing commands for the ${name} menu.`,
+        parseBashCommands(commands),
+    );
+    let code = `printf "${helpMessage}"\n`;
+    for (const authLevel of Object.keys(ctx.cli.auth || {})) {
+        const authCommands = parseBashCommands(commands, parseInt(authLevel));
+        if (!Object.keys(authCommands).length) continue;
+        const authHelpMessage = generateHelpCommand(
+            `\nAuth level ${authLevel} commands.`,
+            authCommands,
+        );
+        code += `\nif [ "$AUTH_LEVEL" == "${authLevel}" ];
+then
+printf "${authHelpMessage}"
+fi\n`;
+    }
+    return code;
 };
 
 const buildHeader = (menu: Menu): string => {
@@ -166,7 +200,21 @@ const includeArgsInScript = (cmd: Command): string | undefined => {
     return `${cmd.script} ${args.map((arg) => `$${arg}`).join(' ')}`;
 };
 
-const buildProcess = (name: string, menu: Menu): string => {
+const buildAuthCheck = (cmd: Command): string => {
+    if (!cmd.access) return '';
+    return `
+if [ "$AUTH_LEVEL" != "${cmd.access}" ];
+then
+auth_${cmd.access}
+if [ "$?" != "0" ];
+then
+return 1
+fi
+fi
+`;
+};
+
+const buildProcess = (ctx: Context, name: string, menu: Menu): string => {
     let code = `IFS=' ' read -ra parts <<< "$1"
 case "\${parts[0]}" in`;
 
@@ -191,14 +239,15 @@ case "\${parts[0]}" in`;
             bashCommand: 'error "\\"${parts[0]}\\" is not a valid command."',
         },
     } as Record<string, Command>);
-    commands.help.bashCommand = generateBashHelpCommand(name, commands);
+    commands.help.bashCommand = generateBashHelpCommand(ctx, name, commands);
 
     for (const [commandName, cmd] of Object.entries(commands)) {
         const command = [commandName];
         command.push(...(cmd.aliases || []));
 
         let commandLines: string[] = [],
-            argCheck = '';
+            argCheck = '',
+            authCheck = '';
         if (!scriptFiles.includes(`${commandName}.sh`) && !cmd.bashCommand) {
             // Unsupported command.
             commandLines = [
@@ -209,24 +258,27 @@ case "\${parts[0]}" in`;
             commandLines = Array.isArray(cmd.bashCommand)
                 ? cmd.bashCommand
                 : [(includeArgsInScript(cmd) || cmd.bashCommand)!];
+            authCheck = buildAuthCheck(cmd);
             argCheck = buildArgCheck(cmd);
         }
         const logic = commandLines.join('\n');
 
         code += `\n    # ${cmd.description}\n    ${command.join(
             ' | ',
-        )})\n${argCheck}\n${logic}\n        ;;`;
+        )})\n${authCheck}${argCheck}\n${logic}\n        ;;`;
     }
     code += '\nesac';
 
     return buildFunc(`process_${name}`, `Process a ${name} command.`, code);
 };
 
-const prompt = (prefix: string, variable = 'input') =>
-    `printf "${prefix}"\nread -p "" ${variable} < /dev/tty\nprintf $RESET`;
+const prompt = (prefix: string, variable = 'input', hidden = false) =>
+    `printf "${prefix}"\nread ${
+        hidden ? ' -s ' : ''
+    }-p "" ${variable} < /dev/tty\nprintf $RESET`;
 
-const buildPrompt = (name: string, menu: Menu): string =>
-    buildProcess(name, menu) +
+const buildPrompt = (ctx: Context, name: string, menu: Menu): string =>
+    buildProcess(ctx, name, menu) +
     buildFunc(
         `prompt_${name}`,
         `Create the ${name} prompt.`,
@@ -239,8 +291,8 @@ fi
 prompt_${name}`,
     );
 
-const buildMenu = async (name: string, menu: Menu) =>
-    buildPrompt(name, menu) +
+const buildMenu = async (ctx: Context, name: string, menu: Menu) =>
+    buildPrompt(ctx, name, menu) +
     buildFunc(
         name,
         `The ${name} menu.`,
@@ -277,12 +329,13 @@ export const buildBash = async (ctx: Context): Promise<string> => {
 
     file += buildVariables();
     file += buildError();
+    file += buildAuth(ctx);
 
     file += includeScripts(ctx);
 
     // Build all the menus
     for (const [name, menu] of Object.entries(ctx.cli.menus || {})) {
-        file += await buildMenu(name, menu);
+        file += await buildMenu(ctx, name, menu);
     }
     file += buildShortCommand(ctx.cli.mainMenu);
     file += ctx.cli.mainMenu;

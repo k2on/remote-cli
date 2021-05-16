@@ -19,6 +19,7 @@ import {
     generateHelpCommand,
     getFile,
     sanitizeString,
+    parseCommands,
 } from './util';
 
 const variables: Record<string, string> = mergeObjects(
@@ -116,35 +117,35 @@ const prompt = (prefix: string, variable = 'input') => `set ${variable}=NO_INPUT
 set /p ${variable}=${sanitizeBatchString(prefix)}
 `;
 
-const parseCommands = (
-    commandsRefrence: Record<string, Command>,
-): Record<string, Command> => {
-    const parsedCommands: Record<string, Command> = {};
-    const commands = copyObject(commandsRefrence);
-    // Remove the catch all.
-    for (const [name, cmd] of Object.entries(commands)) {
-        // If the command is hidden.
-        if (typeof cmd.visibility == 'boolean' && !cmd.visibility) continue;
-        // If the auth level is greater than 0.
-        if (typeof cmd.visibility == 'number' && cmd.visibility > 0) continue;
-        // If there is no batch command.
-        if (!cmd.script && !cmd.batchCommand) continue;
-        // If there is no script for the shell
-        if (cmd.script && !scriptFiles.includes(`${cmd.script}.bat`)) continue;
-        // Command supported.
-        parsedCommands[name] = cmd;
-    }
-
-    return parsedCommands;
-};
+const parseBatchCommands = (commands: Record<string, Command>, authLevel = 0) =>
+    parseCommands(scriptFiles, 'batchCommand', 'bat', commands, authLevel);
 
 const generateBatchHelpCommand = (
+    ctx: Context,
     name: string,
     commands: Record<string, Command>,
 ): string => {
-    return multilineEcho(
-        sanitizeBatchString(generateHelpCommand(name, parseCommands(commands))),
+    let code = multilineEcho(
+        sanitizeBatchString(
+            generateHelpCommand(
+                `Showing commands for the ${name} menu.`,
+                parseBatchCommands(commands),
+            ),
+        ),
     );
+    for (const authLevel of Object.keys(ctx.cli.auth || {})) {
+        const authCommands = parseBatchCommands(commands, parseInt(authLevel));
+        if (!Object.keys(authCommands).length) continue;
+        const authHelpMessage = generateHelpCommand(
+            `\nAuth level ${authLevel} commands.`,
+            authCommands,
+        );
+        code += `\nif "%AUTH_LEVEL%" == "${authLevel}" (
+${multilineEcho(sanitizeBatchString(authHelpMessage))}
+)\n`;
+    }
+
+    return code;
 };
 
 const buildHeader = (menu: Menu): string => {
@@ -187,7 +188,7 @@ if "%${internalArgName}%" == "" (
     return code;
 };
 
-const buildProcess = (name: string, menu: Menu): string => {
+const buildProcess = (ctx: Context, name: string, menu: Menu): string => {
     let code = 'set valid_command=0\n';
     const commands = Object.assign(copyObject<Command>(menu.commands || {}), {
         clear: {
@@ -206,7 +207,7 @@ const buildProcess = (name: string, menu: Menu): string => {
             aliases: ['?', 'h'],
         },
     } as Record<string, Command>);
-    commands.help.batchCommand = generateBatchHelpCommand(name, commands);
+    commands.help.batchCommand = generateBatchHelpCommand(ctx, name, commands);
     for (const [commandName, cmd] of Object.entries(commands)) {
         const command = [commandName];
         command.push(...(cmd.aliases || []));
@@ -257,8 +258,8 @@ ${error('"%1" is not a valid command.')}
 const error = (message: string): string =>
     `set errMsg=${message}\n${callFunc('error', message)}`;
 
-const buildPrompt = (name: string, menu: Menu): string =>
-    buildProcess(name, menu) +
+const buildPrompt = (ctx: Context, name: string, menu: Menu): string =>
+    buildProcess(ctx, name, menu) +
     buildFunc(
         `prompt_${name}`,
         `Create the ${name} prompt.`,
@@ -273,8 +274,8 @@ exit /b
 `,
     );
 
-const buildMenu = async (name: string, menu: Menu) =>
-    buildPrompt(name, menu) +
+const buildMenu = async (ctx: Context, name: string, menu: Menu) =>
+    buildPrompt(ctx, name, menu) +
     buildFunc(
         name,
         `The ${name} menu.`,
@@ -313,7 +314,7 @@ export const buildCMD = async (ctx: Context): Promise<string> => {
 
     // Build all the menus
     for (const [name, menu] of Object.entries(ctx.cli.menus || {})) {
-        file += await buildMenu(name, menu);
+        file += await buildMenu(ctx, name, menu);
     }
 
     file += buildShortCommand(ctx.cli.mainMenu);

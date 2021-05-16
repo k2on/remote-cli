@@ -312,12 +312,37 @@
                 },
                 "visibility": {
                     "title": "Visibility",
-                    "description": "The visibility of the command, `true` or `false`, or an auth level.",
-                    "type": ["boolean", "number"]
+                    "description": "The visibility of the command, `true` or `false`.",
+                    "type": "boolean"
+                },
+                "access": {
+                    "title": "Access",
+                    "description": "The auth level to access the command.",
+                    "type": "number"
                 }
             },
             "additionalProperties": false,
             "required": ["description"]
+        },
+        "auth": {
+            "title": "Authentication Level",
+            "description": "An authentication level configuration.",
+            "type": "object",
+            "properties": {
+                "type": {
+                    "title": "Type",
+                    "description": "The authentication type.",
+                    "type": "string",
+                    "enum": ["hash"]
+                },
+                "hash": {
+                    "title": "Hash",
+                    "description": "The sha1 password hash.",
+                    "type": "string"
+                }
+            },
+            "required": ["type"],
+            "additionalProperties": false
         }
     },
     "properties": {
@@ -350,6 +375,14 @@
         "mainMenu": {
             "type": "string",
             "description": "The main menu."
+        },
+        "auth": {
+            "type": "object",
+            "title": "Authentication",
+            "description": "Configure the authentication levels.",
+            "additionalProperties": {
+                "$ref": "#/definitions/auth"
+            }
         }
     },
     "additionalProperties": false,

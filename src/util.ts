@@ -138,17 +138,59 @@ export const rainbowText = (text: string): string => {
     return result;
 };
 
+export const parseCommands = (
+    scriptFiles: string[],
+    commandKey: 'bashCommand' | 'batchCommand',
+    fileExtension: 'sh' | 'bat',
+    commandsRefrence: Record<string, Command>,
+    authLevel = 0,
+): Record<string, Command> => {
+    const parsedCommands: Record<string, Command> = {};
+    const commands = copyObject(commandsRefrence);
+    for (const [name, cmd] of Object.entries(commands)) {
+        const cmdAttrs = Object.keys(cmd);
+        // Remove the catch all.
+        if (name == '*') continue;
+
+        // If the command is hidden.
+        if (cmdAttrs.includes('visibility') && !cmd.visibility) continue;
+
+        // Access command without auth.
+        const noAuthAccess = authLevel == 0 && !cmdAttrs.includes('access');
+        // Access command with auth.
+        const authAccess = authLevel > 0 && cmd.access == authLevel;
+        // Display in help
+        const displayInHelp = noAuthAccess || authAccess;
+        if (!displayInHelp) continue;
+
+        // If there is no batch command.
+        if (!cmd.script && !cmd[commandKey]) continue;
+
+        // If there is no script for the shell
+        if (
+            cmd.script &&
+            !scriptFiles.includes(`${cmd.script}.${fileExtension}`)
+        )
+            continue;
+
+        // Command supported.
+        parsedCommands[name] = cmd;
+    }
+
+    return parsedCommands;
+};
+
 /**
  * Generate the help message for a menu.
- * @param {string} name The name of the menu.
+ * @param {string} message Message of the menu.
  * @param {Record<string, Command>} commands The menu commands.
  * @returns {string} The help menu text.
  */
 export const generateHelpCommand = (
-    name: string,
+    message: string,
     commands: Record<string, Command>,
 ): string => {
-    let result = `Showing commands for the ${name} menu.\n\n`;
+    let result = `${message}\n\n`;
     const definitions: Record<string, string> = {};
     for (const [commandName, command] of Object.entries(commands)) {
         // Show the command name and its aliases
