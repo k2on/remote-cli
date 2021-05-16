@@ -63,6 +63,42 @@ const buildVariables = () => {
 const buildError = () =>
     buildFunc('error', 'The error function.', 'echo %RED%Error: %~1 %RESET%');
 
+const success = (message: string): string =>
+    `echo %GREEN%SUCCESS: ${message} %RESET%\n`;
+
+const buildAuth = (ctx: Context): string => {
+    let code = '';
+    for (const [authLevel, auth] of Object.entries(ctx.cli.auth || {})) {
+        let authCode = '';
+
+        switch (auth.type) {
+            case 'hash':
+                authCode = `${prompt('Key', 'key', true)}
+powershell $stream = [IO.MemoryStream]::new([byte[]][char[]]$env:key) ; ^
+    (Get-FileHash -InputStream $stream -Algorithm SHA512).hash > %temp%\\hash.tmp
+    set /p hash=<%temp%\\hash.tmp & del %temp%\\hash.tmp\n;
+
+if NOT "%hash%" == "${auth.batchHash}" (
+${error('Invalid Key')}
+exit /b
+)
+set AUTH_LEVEL=1
+set authStatus=1
+${success(`Authenticated to level ${authLevel} access.`)}
+`;
+                break;
+            default:
+                throw Error(`Auth type '${auth.type}' is invalid.`);
+        }
+        code += buildFunc(
+            `auth_${authLevel}`,
+            `Authenticate to level ${authLevel}`,
+            authCode,
+        );
+    }
+    return code;
+};
+
 const includeScripts = (ctx: Context) => {
     let scripts = '';
     for (const menu of Object.values(ctx.cli.menus || {})) {
@@ -113,9 +149,14 @@ const sanitizeBatchString = (str: string): string =>
         BATCH_ESCAPE_CHARACTERS,
     );
 
-const prompt = (prefix: string, variable = 'input') => `set ${variable}=NO_INPUT
-set /p ${variable}=${sanitizeBatchString(prefix)}
-`;
+const prompt = (prefix: string, variable = 'input', hidden = false) =>
+    !hidden
+        ? `set ${variable}=NO_INPUT
+set /p ${variable}=${sanitizeBatchString(prefix)}\n`
+        : `powershell -Command $pword = read-host "${prefix}" -AsSecureString ; ^
+$BSTR=[System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($pword) ; ^
+    [System.Runtime.InteropServices.Marshal]::PtrToStringAuto($BSTR) > %temp%\\inpt.tmp
+    set /p ${variable}=<%temp%\\inpt.tmp & del %temp%\\inpt.tmp\n`;
 
 const parseBatchCommands = (commands: Record<string, Command>, authLevel = 0) =>
     parseCommands(scriptFiles, 'batchCommand', 'bat', commands, authLevel);
@@ -188,6 +229,18 @@ if "%${internalArgName}%" == "" (
     return code;
 };
 
+const buildAuthCheck = (cmd: Command): string => {
+    if (!cmd.access) return '';
+    return `
+if NOT "%AUTH_LEVEL%" == "${cmd.access}" (
+${callFunc(`auth_${cmd.access}`)}
+if NOT "%authStatus%" == "1" (
+    set authStatus=0
+    exit /b
+)
+)`;
+};
+
 const buildProcess = (ctx: Context, name: string, menu: Menu): string => {
     let code = 'set valid_command=0\n';
     const commands = Object.assign(copyObject<Command>(menu.commands || {}), {
@@ -213,6 +266,7 @@ const buildProcess = (ctx: Context, name: string, menu: Menu): string => {
         command.push(...(cmd.aliases || []));
 
         let commandLines: string[] = [],
+            authCheck = '',
             argCheck = '';
         if (!scriptFiles.includes(`${commandName}.bat`) && !cmd.batchCommand) {
             // Unsupported command.
@@ -224,7 +278,7 @@ const buildProcess = (ctx: Context, name: string, menu: Menu): string => {
             commandLines = Array.isArray(cmd.batchCommand)
                 ? cmd.batchCommand
                 : [(cmd.script || cmd.batchCommand)!];
-
+            authCheck = buildAuthCheck(cmd);
             argCheck = buildArgCheck(cmd);
         }
         const logic = commandLines.map((line) => `    ${line}`).join('\n');
@@ -243,6 +297,7 @@ const buildProcess = (ctx: Context, name: string, menu: Menu): string => {
         code += `
 if ${ifStatement} (
     set valid_command=1
+${authCheck}
 ${argCheck}
 ${logic}
 )
@@ -309,6 +364,7 @@ export const buildCMD = async (ctx: Context): Promise<string> => {
 
     file += buildVariables();
     file += buildError();
+    file += buildAuth(ctx);
 
     file += includeScripts(ctx);
 

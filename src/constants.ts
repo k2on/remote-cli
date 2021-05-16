@@ -63,6 +63,7 @@ export const BATCH_VARIABLES = {
     func: '',
     errMsg: '',
     exit: '0',
+    authStatus: '0',
 };
 export const BATCH_ADDITIONAL_VARIABLE_NAMES = ['TIME'];
 

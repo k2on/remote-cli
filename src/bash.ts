@@ -67,7 +67,7 @@ const buildAuth = (ctx: Context): string => {
                 authCode = `${prompt('Key: ', 'key', true)}
 hashed_key=\`echo -n $key | shasum | awk '{print $1}'\`
 echo ""
-if [ "$hashed_key" != "${auth.hash}" ];
+if [ "$hashed_key" != "${auth.bashHash}" ];
 then
 error "Invalid Key"
 return 1

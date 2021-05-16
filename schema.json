@@ -335,9 +335,14 @@
                     "type": "string",
                     "enum": ["hash"]
                 },
-                "hash": {
-                    "title": "Hash",
-                    "description": "The sha1 password hash.",
+                "bashHash": {
+                    "title": "Bash Hash",
+                    "description": "The sha512 key hash for bash.",
+                    "type": "string"
+                },
+                "batchHash": {
+                    "title": "Batch Hash",
+                    "description": "The sha512 key hash for batch.",
                     "type": "string"
                 }
             },
