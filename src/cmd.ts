@@ -6,9 +6,17 @@ import {
     BATCH_TIME_VARIABLES,
     BATCH_VARIABLES,
     COLOR_CODES,
+    DEFAULT_PROMPT_FORMAT,
 } from './constants';
 import { Command, Context, Menu } from './type';
-import { buildSplash, copyObject, getFile, sanitizeString } from './util';
+import {
+    buildSplash,
+    capitalize,
+    copyObject,
+    generateHelpCommand,
+    getFile,
+    sanitizeString,
+} from './util';
 
 const variables: Record<string, string> = BATCH_VARIABLES;
 
@@ -92,27 +100,30 @@ const sanitizeBatchString = (str: string): string =>
         BATCH_ESCAPE_CHARACTERS,
     );
 
-const prompt = (prefix: string) => `set input=NO_INPUT
-set /p input=${sanitizeBatchString(prefix)}`;
+const prompt = (prefix: string, variable = 'input') => `set ${variable}=NO_INPUT
+set /p ${variable}=${sanitizeBatchString(prefix)}
+`;
 
-const generateHelpCommand = (
-    name: string,
+const parseCommands = (
     commandsRefrence: Record<string, Command>,
-): string[] => {
-    const commands = Object.assign({}, commandsRefrence);
-    const lines = [`echo Showing commands for ${name} menu.`, 'echo.'];
-    const maxWidth = Math.max(
-        ...Object.keys(commands).map((commandName) => commandName.length),
-    );
-    for (const [commandName, command] of Object.entries(commands)) {
-        const padding = Array(maxWidth - commandName.length + 4).join(' ');
-        lines.push(
-            sanitizeBatchString(
-                `echo ${commandName}${padding}$CYAN${command.description}$RESET`,
-            ),
-        );
+): Record<string, Command> => {
+    const parsedCommands: Record<string, Command> = {};
+    const commands = copyObject(commandsRefrence);
+    // Remove the catch all.
+    for (const [name, cmd] of Object.entries(commands)) {
+        parsedCommands[name] = cmd;
     }
-    return lines;
+
+    return parsedCommands;
+};
+
+const generateBatchHelpCommand = (
+    name: string,
+    commands: Record<string, Command>,
+): string => {
+    return multilineEcho(
+        sanitizeBatchString(generateHelpCommand(name, parseCommands(commands))),
+    );
 };
 
 const buildHeader = (menu: Menu): string => {
@@ -122,8 +133,41 @@ const buildHeader = (menu: Menu): string => {
     );
 };
 
+const buildArgCheck = (cmd: Command): string => {
+    const args = cmd.args || {},
+        argNames = Object.keys(args);
+    let code = '';
+    if (!argNames.length) return code;
+    code = ': Argument validation.\n';
+    let argCount = 1;
+    for (const argName of argNames) {
+        const arg = args[argName];
+        const internalArgName = argName;
+
+        // The logic if an arg is not defined.
+        let noDefinedArgLogic;
+        if (Object.keys(arg).includes('default')) {
+            noDefinedArgLogic = `set ${internalArgName}=${arg.default}\n`;
+        } else {
+            const promptMessage = arg.promptMessage || capitalize(argName);
+            const promptPrefix = DEFAULT_PROMPT_FORMAT.replace(
+                '{PROMPT}',
+                promptMessage,
+            );
+            noDefinedArgLogic = prompt(promptPrefix, internalArgName);
+        }
+        code += `set ${internalArgName}=%${argCount}
+if "%${internalArgName}%" == "" (
+    ${noDefinedArgLogic}
+)`;
+        argCount++;
+    }
+
+    return code;
+};
+
 const buildProcess = (name: string, menu: Menu): string => {
-    let code = 'set valid_command=0';
+    let code = 'set valid_command=0\n';
     const commands = Object.assign(copyObject<Command>(menu.commands || {}), {
         clear: {
             description: 'Clear the screen.',
@@ -140,7 +184,7 @@ const buildProcess = (name: string, menu: Menu): string => {
             aliases: ['?', 'h'],
         },
     } as Record<string, Command>);
-    commands.help.batchCommand = generateHelpCommand(name, commands);
+    commands.help.batchCommand = generateBatchHelpCommand(name, commands);
     for (const [commandName, cmd] of Object.entries(commands)) {
         const command = [commandName];
         command.push(...(cmd.aliases || []));
@@ -153,6 +197,8 @@ const buildProcess = (name: string, menu: Menu): string => {
             ? cmd.batchCommand
             : [(cmd.script || cmd.batchCommand)!];
         const logic = commandLines.map((line) => `    ${line}`).join('\n');
+
+        const argCheck = buildArgCheck(cmd);
 
         code += `: ${cmd.description}\n`;
         let ifStatement: string;
@@ -168,6 +214,7 @@ const buildProcess = (name: string, menu: Menu): string => {
         code += `
 if ${ifStatement} (
     set valid_command=1
+${argCheck}
 ${logic}
 )
 `;
@@ -215,7 +262,7 @@ ${callFunc(`prompt_${name}`)}
 
 export const buildAccessor = (
     ctx: Context,
-): string => `powershell (Invoke-WebRequest ${ctx.cli.uri}/cmd.html).content > %temp%\\shell.bat
+): string => `powershell (Invoke-WebRequest ${ctx.cli.uri}/cmd.bat).content > %temp%\\shell.bat
 start %temp%\\shell.bat
 exit`;
 

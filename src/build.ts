@@ -69,17 +69,6 @@ export const build = async (directory: string): Promise<void> => {
             'REM',
         ),
     );
-    writeFileSync(
-        join(OUT_DIRECTORY, 'cmd.html'),
-        createIndexFile(
-            ctx.cli,
-            cmdFileContent,
-            `powershell (Invoke-WebRequest ${cli.uri}).content | cmd`,
-            'batch',
-            '@echo off',
-            ':',
-            'REM',
-        ),
-    );
+    writeFileSync(join(OUT_DIRECTORY, 'cmd.bat'), cmdFileContent);
     writeFileSync(join(OUT_DIRECTORY, 'CNAME'), cli.uri);
 };

@@ -47,7 +47,7 @@ export const BASH_ESCAPE_CHARACTER = '\\';
 export const BASH_ESCAPE_CHARACTERS = ['\\', '"', '`', "'"];
 
 export const BATCH_ESCAPE_CHARACTER = '^';
-export const BATCH_ESCAPE_CHARACTERS = ['>', '|'];
+export const BATCH_ESCAPE_CHARACTERS = ['>', '<', '|'];
 
 export const BASH_VARIABLES = {
     SHELL: 'BASH',

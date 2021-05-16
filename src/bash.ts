@@ -12,6 +12,7 @@ import {
     buildSplash,
     capitalize,
     copyObject,
+    generateHelpCommand,
     getFile,
     sanitizeString,
     tab,
@@ -70,23 +71,26 @@ const includeScripts = (ctx: Context) => {
     return scripts;
 };
 
-const generateHelpCommand = (
-    name: string,
+const parseCommands = (
     commandsRefrence: Record<string, Command>,
-): string[] => {
-    const commands = Object.assign({}, commandsRefrence);
-    delete commands['*'];
-    const lines = [`echo "Showing commands for ${name} menu."`, 'echo ""'];
-    const maxWidth = Math.max(
-        ...Object.keys(commands).map((commandName) => commandName.length),
-    );
-    for (const [commandName, command] of Object.entries(commands)) {
-        const padding = Array(maxWidth - commandName.length + 4).join(' ');
-        lines.push(
-            `printf "${commandName}${padding}\${CYAN}${command.description}$RESET\n"`,
-        );
+): Record<string, Command> => {
+    const parsedCommands: Record<string, Command> = {};
+    const commands = copyObject(commandsRefrence);
+    // Remove the catch all.
+    for (const [name, cmd] of Object.entries(commands)) {
+        if (name == '*') continue;
+        parsedCommands[name] = cmd;
     }
-    return lines;
+
+    return parsedCommands;
+};
+
+const generateBashHelpCommand = (
+    name: string,
+    commands: Record<string, Command>,
+): string => {
+    const helpMessage = generateHelpCommand(name, parseCommands(commands));
+    return `printf "${helpMessage}"`;
 };
 
 const buildHeader = (menu: Menu): string => {
@@ -101,7 +105,7 @@ const buildArgCheck = (cmd: Command): string => {
     const args = cmd.args || {},
         argNames = Object.keys(args);
     let code = '';
-    if (argNames.length == 0) return code;
+    if (!argNames.length) return code;
     code = '# Argument validation.\n';
     let argCount = 1;
     for (const argName of argNames) {
@@ -165,7 +169,7 @@ case "\${parts[0]}" in`;
             bashCommand: 'error "\\"${parts[0]}\\" is not a valid command."',
         },
     } as Record<string, Command>);
-    commands.help.bashCommand = generateHelpCommand(name, commands);
+    commands.help.bashCommand = generateBashHelpCommand(name, commands);
 
     for (const [commandName, cmd] of Object.entries(commands)) {
         const command = [commandName];
@@ -177,7 +181,7 @@ case "\${parts[0]}" in`;
         const commandLines: string[] = Array.isArray(cmd.bashCommand)
             ? cmd.bashCommand
             : [(includeArgsInScript(cmd) || cmd.bashCommand)!];
-        const logic = tab(commandLines.join('\n'), 2);
+        const logic = commandLines.join('\n');
 
         const argCheck = buildArgCheck(cmd);
 

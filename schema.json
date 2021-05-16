@@ -226,7 +226,8 @@
                                 "BG_BRIGHT_BLUE",
                                 "BG_BRIGHT_PURPLE",
                                 "BG_BRIGHT_CYAN",
-                                "BG_WHITE"
+                                "BG_WHITE",
+                                "RAINBOW"
                             ]
                         }
                     },
