@@ -1,7 +1,9 @@
+import { existsSync } from 'fs';
 import { join } from 'path';
 import {
     COLOR_CODES,
     BASH_TIME_VARIABLES,
+    VARIABLES,
     BASH_VARIABLES,
     BASH_ESCAPE_CHARACTER,
     BASH_ESCAPE_CHARACTERS,
@@ -12,11 +14,14 @@ import {
     buildSplash,
     capitalize,
     copyObject,
+    mergeObjects,
     generateHelpCommand,
     getFile,
     sanitizeString,
     tab,
 } from './util';
+
+const scriptFiles: string[] = [];
 
 const buildFunc = (name: string, description: string, code: string): string =>
     `\n# ${description}\n${name} ()\n{\n${code.split('\n').join('\n')}\n}\n\n`;
@@ -25,7 +30,10 @@ const sanitizeBashString = (str: string): string =>
     sanitizeString(str, BASH_ESCAPE_CHARACTER, BASH_ESCAPE_CHARACTERS);
 
 const buildVariables = () => {
-    const variables: Record<string, string> = BASH_VARIABLES;
+    const variables: Record<string, string> = mergeObjects(
+        VARIABLES,
+        BASH_VARIABLES,
+    );
 
     for (const [colorName, number] of Object.entries(COLOR_CODES)) {
         variables[colorName] = `'\\e[${number}m'`;
@@ -52,9 +60,13 @@ const includeScripts = (ctx: Context) => {
             menu.commands || {},
         )) {
             if (command.script == undefined) continue;
-            const script = getFile(
-                join(ctx.directory, `funcs/${command.script}.sh`),
+            const scriptPath = join(
+                ctx.directory,
+                `funcs/${command.script}.sh`,
             );
+            if (!existsSync(scriptPath)) continue;
+            const script = getFile(scriptPath);
+            scriptFiles.push(`${command.script}.sh`);
             let definedArgs = '';
             let argCount = 1;
             for (const argName of Object.keys(command.args || {})) {
@@ -76,9 +88,18 @@ const parseCommands = (
 ): Record<string, Command> => {
     const parsedCommands: Record<string, Command> = {};
     const commands = copyObject(commandsRefrence);
-    // Remove the catch all.
     for (const [name, cmd] of Object.entries(commands)) {
+        // Remove the catch all.
         if (name == '*') continue;
+        // If the command is hidden.
+        if (typeof cmd.visibility == 'boolean' && !cmd.visibility) continue;
+        // If the auth level is greater than 0.
+        if (typeof cmd.visibility == 'number' && cmd.visibility > 0) continue;
+        // If there is no batch command.
+        if (!cmd.script && !cmd.bashCommand) continue;
+        // If there is no script for the shell
+        if (cmd.script && !scriptFiles.includes(`${cmd.script}.sh`)) continue;
+        // Command supported.
         parsedCommands[name] = cmd;
     }
 
@@ -163,6 +184,7 @@ case "\${parts[0]}" in`;
         help: {
             description: `Show all the commands for the ${name} menu.`,
             aliases: ['?', 'h'],
+            bashCommand: '.',
         },
         '*': {
             description: 'Invalid command.',
@@ -174,16 +196,22 @@ case "\${parts[0]}" in`;
     for (const [commandName, cmd] of Object.entries(commands)) {
         const command = [commandName];
         command.push(...(cmd.aliases || []));
-        if (!cmd.script && !cmd.bashCommand)
-            throw new Error(
-                `Command: '${commandName}' must have a script or bashCommand`,
-            );
-        const commandLines: string[] = Array.isArray(cmd.bashCommand)
-            ? cmd.bashCommand
-            : [(includeArgsInScript(cmd) || cmd.bashCommand)!];
-        const logic = commandLines.join('\n');
 
-        const argCheck = buildArgCheck(cmd);
+        let commandLines: string[] = [],
+            argCheck = '';
+        if (!scriptFiles.includes(`${commandName}.sh`) && !cmd.bashCommand) {
+            // Unsupported command.
+            commandLines = [
+                `error "The '${commandName}' command is not supported for Unix."`,
+            ];
+        } else {
+            // Supported command.
+            commandLines = Array.isArray(cmd.bashCommand)
+                ? cmd.bashCommand
+                : [(includeArgsInScript(cmd) || cmd.bashCommand)!];
+            argCheck = buildArgCheck(cmd);
+        }
+        const logic = commandLines.join('\n');
 
         code += `\n    # ${cmd.description}\n    ${command.join(
             ' | ',

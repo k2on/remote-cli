@@ -49,6 +49,10 @@ export const BASH_ESCAPE_CHARACTERS = ['\\', '"', '`', "'"];
 export const BATCH_ESCAPE_CHARACTER = '^';
 export const BATCH_ESCAPE_CHARACTERS = ['>', '<', '|'];
 
+export const VARIABLES = {
+    AUTH_LEVEL: '0',
+};
+
 export const BASH_VARIABLES = {
     SHELL: 'BASH',
     USER: '$(whoami)',

@@ -310,12 +310,6 @@
                         "type": "string"
                     }
                 },
-                "shellType": {
-                    "title": "Shell Type",
-                    "description": "Include this command only in the specified shell.",
-                    "type": "string",
-                    "enum": ["bash", "batch"]
-                },
                 "visibility": {
                     "title": "Visibility",
                     "description": "The visibility of the command, `true` or `false`, or an auth level.",

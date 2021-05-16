@@ -23,6 +23,11 @@ export const tab = (str: string, tabs = 1): string =>
 export const copyObject = <T>(obj: Record<string, T>): Record<string, T> =>
     Object.assign({}, obj);
 
+export const mergeObjects = <T>(
+    obj1: Record<string, T>,
+    obj2: Record<string, T>,
+): Record<string, T> => Object.assign(copyObject(obj1), copyObject(obj2));
+
 export const getSyntaxErrorDetails = (
     message: string,
     content: string,

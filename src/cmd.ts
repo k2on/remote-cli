@@ -1,9 +1,11 @@
+import { existsSync } from 'fs';
 import { join } from 'path';
 import {
     BATCH_ADDITIONAL_VARIABLE_NAMES,
     BATCH_ESCAPE_CHARACTER,
     BATCH_ESCAPE_CHARACTERS,
     BATCH_TIME_VARIABLES,
+    VARIABLES,
     BATCH_VARIABLES,
     COLOR_CODES,
     DEFAULT_PROMPT_FORMAT,
@@ -12,13 +14,19 @@ import { Command, Context, Menu } from './type';
 import {
     buildSplash,
     capitalize,
+    mergeObjects,
     copyObject,
     generateHelpCommand,
     getFile,
     sanitizeString,
 } from './util';
 
-const variables: Record<string, string> = BATCH_VARIABLES;
+const variables: Record<string, string> = mergeObjects(
+    VARIABLES,
+    BATCH_VARIABLES,
+);
+
+const scriptFiles: string[] = [];
 
 const buildFunc = (name: string, description: string, code: string): string =>
     `: ${description}
@@ -61,9 +69,13 @@ const includeScripts = (ctx: Context) => {
             menu.commands || {},
         )) {
             if (command.script == undefined) continue;
-            const script = getFile(
-                join(ctx.directory, `funcs/${command.script}.sh`),
+            const scriptPath = join(
+                ctx.directory,
+                `funcs/${command.script}.bat`,
             );
+            if (!existsSync(scriptPath)) continue;
+            scriptFiles.push(`${command.script}.bat`);
+            const script = getFile(scriptPath);
             scripts += buildFunc(commandName, command.description, script);
         }
     }
@@ -111,6 +123,15 @@ const parseCommands = (
     const commands = copyObject(commandsRefrence);
     // Remove the catch all.
     for (const [name, cmd] of Object.entries(commands)) {
+        // If the command is hidden.
+        if (typeof cmd.visibility == 'boolean' && !cmd.visibility) continue;
+        // If the auth level is greater than 0.
+        if (typeof cmd.visibility == 'number' && cmd.visibility > 0) continue;
+        // If there is no batch command.
+        if (!cmd.script && !cmd.batchCommand) continue;
+        // If there is no script for the shell
+        if (cmd.script && !scriptFiles.includes(`${cmd.script}.bat`)) continue;
+        // Command supported.
         parsedCommands[name] = cmd;
     }
 
@@ -181,6 +202,7 @@ const buildProcess = (name: string, menu: Menu): string => {
         },
         help: {
             description: `Show all the commands for the ${name} menu.`,
+            batchCommand: '.',
             aliases: ['?', 'h'],
         },
     } as Record<string, Command>);
@@ -189,16 +211,22 @@ const buildProcess = (name: string, menu: Menu): string => {
         const command = [commandName];
         command.push(...(cmd.aliases || []));
 
-        if (cmd.script == undefined && cmd.batchCommand == undefined)
-            throw new Error(
-                `Command: '${commandName}' must have a script or batchCommand`,
-            );
-        const commandLines: string[] = Array.isArray(cmd.batchCommand)
-            ? cmd.batchCommand
-            : [(cmd.script || cmd.batchCommand)!];
-        const logic = commandLines.map((line) => `    ${line}`).join('\n');
+        let commandLines: string[] = [],
+            argCheck = '';
+        if (!scriptFiles.includes(`${commandName}.bat`) && !cmd.batchCommand) {
+            // Unsupported command.
+            commandLines = error(
+                `The '${commandName}' command is not supported for Windows.`,
+            ).split('\n');
+        } else {
+            // Supported command.
+            commandLines = Array.isArray(cmd.batchCommand)
+                ? cmd.batchCommand
+                : [(cmd.script || cmd.batchCommand)!];
 
-        const argCheck = buildArgCheck(cmd);
+            argCheck = buildArgCheck(cmd);
+        }
+        const logic = commandLines.map((line) => `    ${line}`).join('\n');
 
         code += `: ${cmd.description}\n`;
         let ifStatement: string;
