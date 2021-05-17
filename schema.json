@@ -259,6 +259,16 @@
                     "title": "Prompt Message",
                     "description": "The message to show when a user is entering the argument.",
                     "type": "string"
+                },
+                "maxValue": {
+                    "title": "Max Value",
+                    "description": "The maximum value of a number.",
+                    "type": "number"
+                },
+                "minValue": {
+                    "title": "Min Value",
+                    "description": "The minimum value of a number.",
+                    "type": "number"
                 }
             },
             "additionalProperties": false

@@ -152,7 +152,7 @@ const sanitizeBatchString = (str: string): string =>
 const prompt = (prefix: string, variable = 'input', hidden = false) =>
     !hidden
         ? `set ${variable}=NO_INPUT
-set /p ${variable}=${sanitizeBatchString(prefix)}\n`
+set /p ${variable}=${sanitizeBatchString(prefix)}\necho %RESET%\n`
         : `powershell -Command $pword = read-host "${prefix}" -AsSecureString ; ^
 $BSTR=[System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($pword) ; ^
     [System.Runtime.InteropServices.Marshal]::PtrToStringAuto($BSTR) > %temp%\\inpt.tmp
@@ -204,8 +204,11 @@ const buildArgCheck = (cmd: Command): string => {
     code = ': Argument validation.\n';
     let argCount = 1;
     for (const argName of argNames) {
-        const arg = args[argName];
-        const internalArgName = argName;
+        const arg = args[argName],
+            argKeys = Object.keys(arg),
+            internalArgName = argName;
+        let minValueCheck = '',
+            maxValueCheck = '';
 
         // The logic if an arg is not defined.
         let noDefinedArgLogic;
@@ -219,10 +222,30 @@ const buildArgCheck = (cmd: Command): string => {
             );
             noDefinedArgLogic = prompt(promptPrefix, internalArgName);
         }
+
+        if (argKeys.includes('minValue'))
+            minValueCheck = `
+if "!${internalArgName}!" LSS "${arg.minValue}" (
+    ${error(`Arg '${argName}' must be at least ${arg.minValue}`)}
+    exit /b
+)
+`;
+        if (argKeys.includes('maxValue'))
+            maxValueCheck = `
+if "!${internalArgName}!" GEQ "${arg.maxValue}" (
+    ${error(`Arg '${argName}' must be less than ${arg.maxValue}`)}
+    exit /b
+)
+`;
+
         code += `set ${internalArgName}=%${argCount}
 if "%${internalArgName}%" == "" (
     ${noDefinedArgLogic}
-)`;
+)
+
+${minValueCheck}
+${maxValueCheck}
+`;
         argCount++;
     }
 
@@ -244,6 +267,19 @@ if NOT "%authStatus%" == "1" (
 const buildProcess = (ctx: Context, name: string, menu: Menu): string => {
     let code = 'set valid_command=0\n';
     const commands = Object.assign(copyObject<Command>(menu.commands || {}), {
+        auth: {
+            description: 'Authenticate to an access level.',
+            batchCommand: ['set func=auth_!level!', 'call :func_auth_!level!'],
+            args: {
+                level: {
+                    maxValue:
+                        Math.max(
+                            ...Object.keys(ctx.cli.auth || {}).map(parseInt),
+                        ) + 1,
+                    minValue: 1,
+                },
+            },
+        },
         clear: {
             description: 'Clear the screen.',
             batchCommand: callFunc(name).split('\n'),

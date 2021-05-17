@@ -64,7 +64,14 @@ const buildAuth = (ctx: Context): string => {
 
         switch (auth.type) {
             case 'hash':
-                authCode = `${prompt('Key: ', 'key', true)}
+                authCode = `
+: check for existance of shasum
+if ! command -v shasum &> /dev/null
+then
+    error "shasum was not found"
+    return 1
+fi
+${prompt('Key: ', 'key', true)}
 hashed_key=\`echo -n $key | shasum | awk '{print $1}'\`
 echo ""
 if [ "$hashed_key" != "${auth.bashHash}" ];
@@ -164,8 +171,11 @@ const buildArgCheck = (cmd: Command): string => {
     code = '# Argument validation.\n';
     let argCount = 1;
     for (const argName of argNames) {
-        const arg = args[argName];
-        const internalArgName = argName;
+        const arg = args[argName],
+            argKeys = Object.keys(arg),
+            internalArgName = argName;
+        let minValueCheck = '',
+            maxValueCheck = '';
 
         // The logic if an arg is not defined.
         let noDefinedArgLogic;
@@ -182,11 +192,33 @@ const buildArgCheck = (cmd: Command): string => {
             noDefinedArgLogic = prompt(promptPrefix, internalArgName);
         }
 
+        if (argKeys.includes('minValue')) {
+            minValueCheck = `
+if [ "$${internalArgName}" -lt "${arg.minValue}" ];
+then
+error "Arg '${argName}' must be at least ${arg.minValue}"
+return
+fi
+`;
+        }
+        if (argKeys.includes('maxValue')) {
+            maxValueCheck = `
+if [ "$${internalArgName}" -ge "${arg.maxValue}" ];
+then
+error "Arg '${argName}' must be less than ${arg.maxValue}"
+return
+fi
+`;
+        }
+
         code += `${internalArgName}=\${parts[${argCount}]}
 if [ "$${internalArgName}" == "" ];
 then
     ${noDefinedArgLogic}
 fi
+
+${minValueCheck}
+${maxValueCheck}
 `;
 
         argCount++;
@@ -234,11 +266,26 @@ case "\${parts[0]}" in`;
             aliases: ['?', 'h'],
             bashCommand: '.',
         },
-        '*': {
-            description: 'Invalid command.',
-            bashCommand: 'error "\\"${parts[0]}\\" is not a valid command."',
-        },
     } as Record<string, Command>);
+    if (ctx.cli.auth) {
+        commands.auth = {
+            description: 'Authenticate to an access level.',
+            bashCommand: 'auth_$level',
+            args: {
+                level: {
+                    maxValue:
+                        Math.max(
+                            ...Object.keys(ctx.cli.auth || {}).map(parseInt),
+                        ) + 1,
+                    minValue: 1,
+                },
+            },
+        };
+    }
+    commands['*'] = {
+        description: 'Invalid command.',
+        bashCommand: 'error "\\"${parts[0]}\\" is not a valid command."',
+    };
     commands.help.bashCommand = generateBashHelpCommand(ctx, name, commands);
 
     for (const [commandName, cmd] of Object.entries(commands)) {
