@@ -273,6 +273,105 @@
             },
             "additionalProperties": false
         },
+        "ifCondition": {
+            "title": "If Condition",
+            "description": "An if block condition.",
+            "type": "object",
+            "properties": {
+                "condition": {
+                    "title": "Condition",
+                    "description": "The condition to test for.",
+                    "type": "object",
+                    "$ref": "#/definitions/logicBlock"
+                },
+                "logic": {
+                    "title": "Logic",
+                    "description": "The logic to run if the condition is met.",
+                    "type": "object",
+                    "$ref": "#/definitions/logicBlock"
+                }
+            },
+            "required": ["condition", "logic"],
+            "additionalProperties": false
+        },
+        "logicBlock": {
+            "title": "Logic Block",
+            "description": "Logic Block for the common scripting structure.",
+            "type": "object",
+            "properties": {
+                "type": {
+                    "title": "Type",
+                    "description": "The type of block",
+                    "type": "string",
+                    "enum": ["print", "set", "get", "if", "clear"]
+                },
+                "msg": {
+                    "title": "Message",
+                    "description": "The message to print.",
+                    "type": "string"
+                },
+                "name": {
+                    "title": "Variable Name",
+                    "description": "The variable name",
+                    "type": "string"
+                },
+                "value": {
+                    "title": "Value",
+                    "description": "The value.",
+                    "type": ["string", "number", "boolean"]
+                },
+                "conditions": {
+                    "title": "Conditions",
+                    "description": "The conditions for the if statement.",
+                    "type": "object",
+                    "$ref": "#/definitions/ifCondition"
+                },
+                "elseLogic": {
+                    "title": "Else Logic",
+                    "description": "The else condition for the if statement.",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/logicBlock"
+                    }
+                }
+            },
+            "anyOf": [
+                {
+                    "properties": {
+                        "type": {
+                            "const": "print"
+                        }
+                    },
+                    "required": ["msg"]
+                },
+                {
+                    "properties": {
+                        "type": {
+                            "const": "set"
+                        }
+                    },
+                    "required": ["name", "value"]
+                },
+                {
+                    "properties": {
+                        "type": {
+                            "const": "get"
+                        }
+                    },
+                    "required": ["name"]
+                },
+                {
+                    "properties": {
+                        "type": {
+                            "const": "if"
+                        }
+                    },
+                    "required": ["conditions"]
+                }
+            ],
+            "required": ["type"],
+            "additionalProperties": false
+        },
         "command": {
             "title": "Command",
             "description": "A CLI command.",
@@ -289,6 +388,14 @@
                     "type": "object",
                     "additionalProperties": {
                         "$ref": "#/definitions/argument"
+                    }
+                },
+                "logic": {
+                    "title": "Logic",
+                    "description": "The common scripting structure logic.",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/logicBlock"
                     }
                 },
                 "script": {
