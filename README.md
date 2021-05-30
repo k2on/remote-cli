@@ -26,7 +26,7 @@ curl your.url | bash
 powershell (Invoke-WebRequest your.url).content | cmd
 ```
 
-> **NOTE**: If there is a shorter way to do this please create an issue and let me know.
+> **NOTE**: If there is a shorter way to do this please create an issue and let me know!
 
 ### CLI Files
 
