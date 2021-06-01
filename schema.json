@@ -505,6 +505,11 @@
             "additionalProperties": {
                 "$ref": "#/definitions/auth"
             }
+        },
+        "command": {
+            "type": "string",
+            "title": "Command",
+            "description": "Allow for the command to be locally installed."
         }
     },
     "additionalProperties": false,

@@ -246,6 +246,12 @@ fi
 `;
 };
 
+const buildInstallFunction = (ctx: Context): string => {
+    let code = '';
+
+    return buildFunc('install', 'Install the shell locally.', code);
+};
+
 const buildProcess = (ctx: Context, name: string, menu: Menu): string => {
     let code = `IFS=' ' read -ra parts <<< "$1"
 case "\${parts[0]}" in`;
@@ -280,6 +286,12 @@ case "\${parts[0]}" in`;
                     minValue: 1,
                 },
             },
+        };
+    }
+    if (ctx.cli.command) {
+        commands.install = {
+            description: 'Install the command locally.',
+            bashCommand: 'install',
         };
     }
     commands['*'] = {
@@ -377,6 +389,7 @@ export const buildBash = async (ctx: Context): Promise<string> => {
     file += buildVariables();
     file += buildError();
     file += buildAuth(ctx);
+    file += buildInstallFunction(ctx);
 
     file += includeScripts(ctx);
 
