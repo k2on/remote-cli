@@ -8,6 +8,7 @@ import {
     BASH_ESCAPE_CHARACTER,
     BASH_ESCAPE_CHARACTERS,
     DEFAULT_PROMPT_FORMAT,
+    BASH_LOCAL_INSTALLATION_PATH,
 } from './constants';
 import { Context, Menu, Command } from './type';
 import {
@@ -246,10 +247,44 @@ fi
 `;
 };
 
-const buildInstallFunction = (ctx: Context): string => {
-    let code = '';
+const buildUpdateLogic = (ctx: Context): string =>
+    `
+echo Checking for updates...
 
-    return buildFunc('install', 'Install the shell locally.', code);
+curl ${ctx.cli.uri} -sL > /tmp/newestCLI
+
+if !(cmp -s "/tmp/newestCLI" "${BASH_LOCAL_INSTALLATION_PATH}${ctx.cli.command}"); then
+printf \${BLUE}Updating to latest version... $RESET
+install
+fi
+
+sleep 10
+
+`
+        .replace(/\//g, '\\/')
+        .replace(/\n/g, '\\n');
+
+const buildInstallLogic = (ctx: Context): string => {
+    const localPath = BASH_LOCAL_INSTALLATION_PATH + ctx.cli.command;
+    return `
+# Move the shell command to the local binaries.
+curl -sL ${ctx.cli.uri} > ${localPath}
+# Add the update logic
+sed -i '' 's/# UPDATE_CHECK/${buildUpdateLogic(ctx)}/g' ${localPath}
+# Make the script executible
+chmod +x ${localPath}`;
+};
+
+const buildInstallFunction = (ctx: Context): string => {
+    return buildFunc(
+        'install',
+        'Install the shell locally.',
+        `
+${buildInstallLogic(ctx)}
+
+${success(`Installed Latest Version`)}
+`,
+    );
 };
 
 const buildProcess = (ctx: Context, name: string, menu: Menu): string => {
@@ -386,10 +421,12 @@ fi
 export const buildBash = async (ctx: Context): Promise<string> => {
     let file = '#!/usr/bin/env bash\n';
 
+    // This line allows the 'install' command to replace this comment with code to check for updates on a local install.
     file += buildVariables();
     file += buildError();
     file += buildAuth(ctx);
-    file += buildInstallFunction(ctx);
+    if (ctx.cli.command)
+        file += buildInstallFunction(ctx) + '\n# UPDATE_CHECK\n';
 
     file += includeScripts(ctx);
 
