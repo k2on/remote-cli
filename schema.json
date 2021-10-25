@@ -25,6 +25,11 @@
                     "description": "Text to display when in the menu (Good for ASCII art).",
                     "type": ["string", "object"],
                     "properties": {
+                        "path": {
+                            "title": "Path",
+                            "description": "Path to a text file for the splash screen.",
+                            "type": "string"
+                        },
                         "text": {
                             "title": "Text",
                             "description": "The text of the splash.",
@@ -231,7 +236,6 @@
                             ]
                         }
                     },
-                    "required": ["text", "font"],
                     "additionalProperties": false
                 },
                 "commands": {

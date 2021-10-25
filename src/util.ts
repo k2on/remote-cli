@@ -220,12 +220,20 @@ export const buildSplash = async (
 ): Promise<string> => {
     if (splash == undefined) return '';
     if (typeof splash == 'string') return sanitizeStringFunction(splash);
-    const fig = await figlet(splash.text, splash.font);
-    let coloredFig = fig;
-    if (splash.color == 'RAINBOW') {
-        coloredFig = rainbowText(fig);
-    } else if (splash.color) {
-        coloredFig = `\${${splash.color.toUpperCase()}}${fig}$RESET`;
+    let splashAscii = '';
+    if (splash.path) {
+        // Use a file path.
+        splashAscii = readFileSync(splash.path, 'utf-8');
+    } else if (splash.text) {
+        // Use figlet to generate ascii art.
+        splashAscii = await figlet(splash.text, splash.font || 'Basic');
+    } else {
+        throw Error('path or text was not given');
     }
-    return sanitizeStringFunction(coloredFig);
+    const splashColor = splash.color || 'WHITE';
+    const coloredSlash =
+        splashColor == 'RAINBOW'
+            ? rainbowText(splashAscii)
+            : `\${${splashColor.toUpperCase()}}${splashAscii}$RESET`;
+    return sanitizeStringFunction(coloredSlash);
 };
